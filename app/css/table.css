@@ -1,3 +1,8 @@
+
+body {
+background-color: #fafafa;
+}
+
 .transition-fadeIn-appear {
   opacity: 0.01;
 }
@@ -39,70 +44,97 @@
 	text-align: center;
 }
 
-.btn
-{
-	display:inline-block;
-  width: 4.5%;
-  height: 6.5%;
-  position: absolute;
-  margin: 0px;
-  padding: 0.5%;
-}
-
-.element-placeholder
-{
-	display:inline-block;
-  width: 5%;
-	height: 5px;
-	display: inline-block;
-}
-
 .periodicTable
 {
 	white-space:nowrap;
 }
 
+
+.btn
+{
+  -webkit-box-shadow: 1px 1px 5px -1px rgba(0,0,0,0.75);
+  -moz-box-shadow: 1px 1px 5px -1px rgba(0,0,0,0.75);
+  box-shadow: 1px 1px 5px -1px rgba(0,0,0,0.75);
+}
+
+.btn:hover{
+  opacity: 0.7;
+}
+
+/* Navbar - Top */
+
+.btnTop
+{
+  margin-left: 5%;
+  margin-right: 5%;
+  text-decoration: none;
+}
+
+.btnTop:hover
+{
+  color: #fff;
+  font-style:normal;
+  text-decoration: none;
+}
+
+
 .glyphicon{
   font-size: 20px;
+  color: #ddd;
+}
+
+.glyphicon:hover
+{
+  color: #fff;
+  font-style:normal;
+}
+
+.navParent
+{
+  border: 1px solid #000;
+  width: 100%;
+}
+
+.navCenter
+{
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.navTop
+{
+  background-color: #333;
+  height: 45px;
+}
+
+.navBottom
+{
+  background-color: #222;
+  height: 35px;
+  color: #ddd;
+  -webkit-box-shadow: 0px 4px 5px 0px rgba(0,0,0,0.75);
+  -moz-box-shadow: 0px 4px 5px 0px rgba(0,0,0,0.75);
+  box-shadow: 0px 4px 5px 0px rgba(0,0,0,0.75);
+  border: 1px solid #222;
 }
 
 .navText
 {
+  font-family: 'Roboto', sans-serif;
   margin-left:5px;
-  margin-bottom: 10px;
-  font-size: 14px;
+  margin-bottom: 5px;
+  padding-bottom: 15px;
+  font-size: 12px;
   font-weight: bold;
+  color: #888;
+  font-style: normal;
+  height: 100%;
+  vertical-align: middle;
 }
 
-/*
-  This centers nav content
-  http://stackoverflow.com/questions/18777235/center-content-in-responsive-bootstrap-navbar
-*/
-
-.navbar .navbar-nav {
-  display: inline-block;
-  vertical-align: top;
-}
-
-.navbar .navbar-collapse {
-  align-content: center;
-}
-
-/*This disables navbar collapse
- Taken from : http://stackoverflow.com/questions/23535289/bootstrap-3-disable-navbar-collapse
-*/
-.navbar-collapse.collapse {
-display: block!important;
-}
-
-.navbar-nav>li, .navbar-nav {
-float: left !important;
-}
-
-.navbar-nav.navbar-right:last-child {
-margin-right: -15px !important;
-}
-
-.navbar-right {
-float: right!important;
+.navText:hover
+{
+  color: #fff;
+  font-style:normal;
 }

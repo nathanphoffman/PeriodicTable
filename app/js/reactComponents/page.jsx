@@ -22,6 +22,7 @@ module.exports = React.createClass({
         <span>
           <Navbar/>
           <PeriodicTable elements={this.state.data}/>
+
         </span>
       );
 

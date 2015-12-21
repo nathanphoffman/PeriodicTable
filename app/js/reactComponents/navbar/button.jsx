@@ -20,16 +20,34 @@ module.exports = React.createClass({
     var clickClass = this.state.clicked
       ? "active"
       : "";
+
+      if(this.props.glyph)
+      {
       var glyphClass = "glyphicon glyphicon-" + this.props.glyph;
-      var textClass = "hidden-xs navText";
+    }
+    else {
+      var glyphClass = "";
+    }
+
+    var textClass = "navText";
+
+    if(!this.props.type && this.props.type != 'sub')
+    {
+      textClass += " hidden-xs";
+    }
+
+      var classNames = "btnTop";
+
+      if(this.props.hide)
+      {
+        classNames += " hidden-xs";
+      }
 
     return (
-      <li className={clickClass}>
-        <a onClick={this.click} href="#">
+        <a onClick={this.click} href="#" className={classNames}>
           <span className={glyphClass} aria-hidden="true"></span>
           <span className={textClass}>{this.props.name}</span>
         </a >
-      </li>
     );
   },
 

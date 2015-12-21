@@ -49,14 +49,28 @@
 	//try{
 	    var React = __webpack_require__(1);
 	    var ReactDOM = __webpack_require__(158);
+	    var gs = __webpack_require__(159);
+	    var hf = __webpack_require__(160);
 	
-	    var Page = __webpack_require__(159);
+	    var Page = __webpack_require__(161);
 	
 	    ReactDOM.render(
 	      React.createElement(Page, null),
 	      document.getElementById('reactJS')
 	    );
 	
+	    var debounceResize = hf.debounce(resize,25,false);
+	
+	    function resize()
+	    {
+	
+	      gs.eachComponent({group: 'resize'},
+	  		function(component) {
+	        component.reference.setState({resize: true});
+	      });
+	    }
+	    // On window resize we need to redo responsive-elements
+	    window.onresize = debounceResize;
 	
 	
 	/*
@@ -19654,11 +19668,131 @@
 
 /***/ },
 /* 159 */
+/***/ function(module, exports) {
+
+	module.exports = {
+	
+	  register: function(component, groups, state) {
+	
+	    state = state || {};
+	    groups = groups || [];
+	
+	    var uniqueId = _uniqueId++;
+	    _components[uniqueId] = {
+	      uniqueId: uniqueId,
+	      reference: component,
+	      state: state,
+	      groups: groups
+	    };
+	
+	    return uniqueId;
+	  },
+	
+	  unregister: function(uniqueId) {
+	    _components.forEach(function(component, index) {
+	      if (component.uniqueId === uniqueId) {
+	        component.splice(index, 1);
+	        return;
+	      }
+	    });
+	  },
+	
+	  getState: function(stateID) {
+	    var component = getComponent(stateID);
+	    return component.state;
+	  },
+	
+	  setState: function(stateID, state) {
+	    _components[stateID].state = state;
+	  },
+	
+	  eachComponent: function(config, func) {
+	
+	    var targetGroup = config.group;
+	    var ignoreId = config.ignoreId || -1;
+	
+	    _components.forEach(function(component) {
+	      component.groups.forEach(function(group) {
+	        if (group == targetGroup && ignoreId != component.uniqueId) {
+	          func(component);
+	        }
+	      });
+	    });
+	  }
+	}
+	
+	function getComponent(stateID) {
+	  return _components[stateID];
+	}
+	
+	var _uniqueId = 0;
+	var _components = [];
+
+
+/***/ },
+/* 160 */
+/***/ function(module, exports) {
+
+	module.exports = {
+		containsProperty: function (arr, prop, value) {
+			if (!value) {
+				value = null;
+			}
+	
+			var result = {
+				arr: [],
+				max: 0
+			};
+	
+			arr.forEach(function (e) {
+	
+				if (e[prop] === value) {
+					result.arr.push(e);
+					result.max = e[prop] > result.max ? e[prop] : result.max;
+				}
+	
+				if(!result.absMax && e[prop])
+				{
+					result.absMax = e[prop];
+				}
+	
+				if(!result.absMin && e[prop])
+				{
+					result.absMin = e[prop];
+				}
+	
+				result.absMax = e[prop] > result.absMax ? e[prop] : result.absMax;
+				result.absMin = e[prop] < result.absMin ? e[prop] : result.absMin;
+	
+			});
+	
+			return result;
+		},
+	
+		debounce: function(func, wait, immediate){
+				var timeout;
+				return function() {
+					var context = this, args = arguments;
+					var later = function() {
+						timeout = null;
+						if (!immediate) func.apply(context, args);
+					};
+					var callNow = immediate && !timeout;
+					clearTimeout(timeout);
+					timeout = setTimeout(later, wait);
+					if (callNow) func.apply(context, args);
+				};
+		}
+	}
+
+
+/***/ },
+/* 161 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/** @jsx React.DOM */var React = __webpack_require__(1);
-	var PeriodicTable = __webpack_require__(160);
-	var Navbar = __webpack_require__(171);
+	var PeriodicTable = __webpack_require__(162);
+	var Navbar = __webpack_require__(172);
 	var ajax = __webpack_require__(174);
 	
 	//var N = require("./registry.js").getComponent('navbar');
@@ -19680,6 +19814,7 @@
 	        React.createElement("span", null, 
 	          React.createElement(Navbar, null), 
 	          React.createElement(PeriodicTable, {elements: this.state.data})
+	
 	        )
 	      );
 	
@@ -19695,12 +19830,12 @@
 
 
 /***/ },
-/* 160 */
+/* 162 */
 /***/ function(module, exports, __webpack_require__) {
 
-	/** @jsx React.DOM */var Element = __webpack_require__(161);
-	var hf= __webpack_require__(162);
-	var transitions = __webpack_require__(163);
+	/** @jsx React.DOM */var Element = __webpack_require__(163);
+	var hf= __webpack_require__(160);
+	var transitions = __webpack_require__(164);
 	var React = __webpack_require__(1);
 	
 	module.exports = React.createClass({displayName: "module.exports",
@@ -19714,13 +19849,20 @@
 	
 			elements.forEach(function(element){
 	
+				var propName = "Density-gcc";
+				var prop = hf.containsProperty(elements,propName);
+				var range = Math.abs(prop.absMax) + Math.abs(prop.absMin);
+				var percent = 1-Number(element[propName])/range;
+				var hexColor = Math.round(percent*255);
+	
 				cells.push(React.createElement(Element, {test: Math.random(), 
 				element: element.Symbol, 
 				key: element.AtomicNumber, 
 				number: element.AtomicNumber, 
 				mass: element.Atomic_Weight, 
 				period: element.Period, 
-				group: element.Group}
+				group: element.Group, 
+				hexColor: hexColor}
 				));
 	
 		});
@@ -19777,10 +19919,11 @@
 
 
 /***/ },
-/* 161 */
+/* 163 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/** @jsx React.DOM */var React = __webpack_require__(1);
+	var gs = __webpack_require__(159);
 	
 	module.exports = React.createClass({displayName: "module.exports",
 	
@@ -19791,96 +19934,159 @@
 	  render: function() {
 	
 	    var btnClass = "btn btn-default";
+	    var hexColor = this.props.hexColor || "#fff";
+	
+	    console.log(hexColor);
 	
 	    //var left = this.props
-	    var group = this.props.group;
-	    var number = this.props.number;
-	    var period = this.props.period;
-	    var widthSpace = 4.8;
-	    var heightSpace = 7;
+	    var width = window.innerWidth
+	    || document.documentElement.clientWidth
+	    || document.body.clientWidth;
 	
-	    var left;
+	    var btnStyle = {};
+	    var mass = "";
+	    var text = hexColor > 125 ? 50 : 210;
 	
-	    if(group != "null")
+	    if(width >= 1800 && !this.state.iconView)
 	    {
-	      left = Number(group*widthSpace) + '%';
+	      btnStyle = this.extendedTable(2.7,6.5);
+	      var rounded = Math.round(this.props.mass*100)/100;
+	      mass = !isNaN(rounded) ? rounded : '-';
+	    }
+	    else if(width >= 1200 && !this.state.iconView)
+	    {
+	      btnStyle = this.standardTable(4.5,6.5);
+	      var rounded = Math.round(this.props.mass*100)/100;
+	      mass = !isNaN(rounded) ? rounded : '-';
+	    }
+	    else if(width >= 768 && !this.state.iconView) {
+	      btnStyle = this.standardTable(4.5,5);
 	    }
 	    else {
-	      if(number < 89)
-	      {
-	        left = Number((3+(number-57))*widthSpace) + '%';
-	        period += 2.5;
-	      }
-	      else {
-	        left = Number((3+(number-89))*widthSpace) + '%';
-	        period += 2.5;
-	      }
-	    }
-	    var top = Number(period*heightSpace) + '%';
+	      btnStyle.width = "50";
+	      btnStyle.height = "50";
+	      btnStyle.position = "relative";
+	      btnStyle.margin = "3";
 	
-	    var btnStyle = {
-	      left: left,
-	      top: top
-	    };
+	    }
+	
+	    btnStyle.backgroundColor = 'rgb(' + hexColor + ',' + hexColor + ',' + hexColor + ')';
+	    btnStyle.color = 'rgb(' + text + ',' + text + ',' + text + ')';
 	
 	    return (React.createElement("button", {style: btnStyle, type: "button", onClick: this.processElement, className: btnClass}, 
-	    	React.createElement("div", {className: "element-table-number"}, 
-	    		this.props.number
-	    	), 
-	    	React.createElement("div", {className: "element-table-symbol"}, 
-	    		React.createElement("b", null, this.props.element)
-	    	), 
-	    	React.createElement("div", {className: "element-table-mass"}, 
-	    		this.props.mass
-	    	)
+	      React.createElement("div", {className: "element-table-number"}, 
+	        this.props.number
+	      ), 
+	      React.createElement("div", {className: "element-table-symbol"}, 
+	        React.createElement("b", null, this.props.element)
+	      ), 
+	      React.createElement("div", {className: "element-table-mass"}, 
+	        mass
+	      )
 	    ));
+	
 	  },
 	
 	  processElement: function()
 	  {
 	    this.setState({clicked: true});
-	  }
+	  },
+	
+	  extendedTable: function(width,height)
+	  {
+	    var left;
+	
+	    var widthSpace = width*1.1;
+	    var heightSpace = height*1.1;
+	
+	    var group = this.props.group;
+	    var number = this.props.number;
+	    var period = this.props.period;
+	
+	    if(group != "null")
+	      {
+	        if(group > 2)
+	        {
+	          group += 14;
+	        }
+	        left = Number(group*widthSpace) + '%';
+	      }
+	      else {
+	        if(number < 89)
+	        {
+	          left = Number((3+(number-57))*widthSpace) + '%';
+	        }
+	        else {
+	          left = Number((3+(number-89))*widthSpace) + '%';
+	        }
+	      }
+	      var top = Number(period*heightSpace + 6) + '%';
+	
+	      return {
+	        left: left,
+	        top: top,
+	        width: width + "%",
+	        height: height + "%",
+	        position: "absolute"
+	      };
+	
+	  },
+	
+	  standardTable: function(width, height)
+	  {
+	    var left;
+	
+	    var widthSpace = Math.ceil(width*1.1);
+	    var heightSpace = Math.ceil(height*1.1);
+	
+	    var group = this.props.group;
+	    var number = this.props.number;
+	    var period = this.props.period;
+	
+	    if(group != "null")
+	      {
+	        left = Number(group*widthSpace) + '%';
+	      }
+	      else {
+	        if(number < 89)
+	        {
+	          left = Number((3+(number-57))*widthSpace) + '%';
+	          period += 2.5;
+	        }
+	        else {
+	          left = Number((3+(number-89))*widthSpace) + '%';
+	          period += 2.5;
+	        }
+	      }
+	      var top = Number(period*heightSpace + 6) + '%';
+	
+	      return {
+	        left: left,
+	        top: top,
+	        width: width + "%",
+	        height: height + "%",
+	        position: "absolute"
+	      };
+	
+	  },
+	    componentDidMount: function() {
+	      this.uniqueId = gs.register(this, ['element','resize']);
+	    },
+	
+	  	componentWillUnmount: function(){
+	  		gs.unregister(this.uniqueId);
+	  	}
 	
 	});
 
 
 /***/ },
-/* 162 */
-/***/ function(module, exports) {
-
-	module.exports = {
-		containsProperty: function (arr, prop, value) {
-			if (!value) {
-				value = null;
-			}
-	
-			var result = {
-				arr: [],
-				max: 0,
-				absMax: 0
-			};
-	
-			arr.forEach(function (e) {
-				if (e[prop] === value) {
-					result.arr.push(e);
-					result.max = e[prop] > result.max ? e[prop] : result.max;
-				}
-	
-				result.absMax = e[prop] > result.absMax ? e[prop] : result.absMax;
-	
-			});
-	
-			return result;
-		}
-	}
-
-/***/ },
-/* 163 */
+/* 164 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/** @jsx React.DOM */// All transitions are stored here using ReactCSSTransitionGroup Addon, CSS is elsewhere
 	var React = __webpack_require__(1);
-	var ReactCSSTransitionGroup = __webpack_require__(164);
+	var ReactCSSTransitionGroup = __webpack_require__(165);
 	
 	module.exports = {
 		fadeIn: function(innerElement){
@@ -19911,13 +20117,13 @@
 
 
 /***/ },
-/* 164 */
+/* 165 */
 /***/ function(module, exports, __webpack_require__) {
 
-	module.exports = __webpack_require__(165);
+	module.exports = __webpack_require__(166);
 
 /***/ },
-/* 165 */
+/* 166 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/**
@@ -19938,8 +20144,8 @@
 	
 	var assign = __webpack_require__(39);
 	
-	var ReactTransitionGroup = __webpack_require__(166);
-	var ReactCSSTransitionGroupChild = __webpack_require__(168);
+	var ReactTransitionGroup = __webpack_require__(167);
+	var ReactCSSTransitionGroupChild = __webpack_require__(169);
 	
 	function createTransitionTimeoutPropValidator(transitionType) {
 	  var timeoutPropName = 'transition' + transitionType + 'Timeout';
@@ -20005,7 +20211,7 @@
 	module.exports = ReactCSSTransitionGroup;
 
 /***/ },
-/* 166 */
+/* 167 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/**
@@ -20022,7 +20228,7 @@
 	'use strict';
 	
 	var React = __webpack_require__(2);
-	var ReactTransitionChildMapping = __webpack_require__(167);
+	var ReactTransitionChildMapping = __webpack_require__(168);
 	
 	var assign = __webpack_require__(39);
 	var emptyFunction = __webpack_require__(15);
@@ -20215,7 +20421,7 @@
 	module.exports = ReactTransitionGroup;
 
 /***/ },
-/* 167 */
+/* 168 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/**
@@ -20318,7 +20524,7 @@
 	module.exports = ReactTransitionChildMapping;
 
 /***/ },
-/* 168 */
+/* 169 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/**
@@ -20338,8 +20544,8 @@
 	var React = __webpack_require__(2);
 	var ReactDOM = __webpack_require__(3);
 	
-	var CSSCore = __webpack_require__(169);
-	var ReactTransitionEvents = __webpack_require__(170);
+	var CSSCore = __webpack_require__(170);
+	var ReactTransitionEvents = __webpack_require__(171);
 	
 	var onlyChild = __webpack_require__(156);
 	
@@ -20483,7 +20689,7 @@
 	module.exports = ReactCSSTransitionGroupChild;
 
 /***/ },
-/* 169 */
+/* 170 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {/**
@@ -20586,7 +20792,7 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(4)))
 
 /***/ },
-/* 170 */
+/* 171 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/**
@@ -20700,13 +20906,13 @@
 	module.exports = ReactTransitionEvents;
 
 /***/ },
-/* 171 */
+/* 172 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/** @jsx React.DOM */
 	var React = __webpack_require__(1);
-	var Button = __webpack_require__(172);
-	var gs = __webpack_require__(173);
+	var Button = __webpack_require__(173);
+	var gs = __webpack_require__(159);
 	//var registry = require('./../registry.js');
 	//var Button = require("./../registry_data.js");
 	//var Button = registry.getComponent('navbar','Button');
@@ -20724,16 +20930,24 @@
 	  render: function()
 	  {
 	    return(
-	      React.createElement("nav", {onClick: this.click, className: "navbar navbar-inverse navbar-static-top"}, 
-	        React.createElement("div", {className: "container-fluid"}, 
-	          React.createElement("div", null, 
-	            React.createElement("ul", {className: "nav navbar-nav"}, 
-	              React.createElement(Button, {events: this.events, name: "Periodic Table", glyph: "list-alt"}), 
-	              React.createElement(Button, {events: this.events, name: "Icons", glyph: "th-large"}), 
-	              React.createElement(Button, {events: this.events, name: "Compare", glyph: "resize-horizontal"}), 
-	              React.createElement(Button, {events: this.events, name: "About", glyph: "info-sign"})
-	            )
-	          )
+	      React.createElement("div", {onClick: this.click, className: "navParent"}, 
+	        React.createElement("div", {className: "navCenter navTop"}, 
+	              React.createElement(Button, {hide: true, events: this.events, name: "VIEW", glyph: "eye-open"}), 
+	              React.createElement(Button, {events: this.events, name: "SORT", glyph: "resize-vertical"}), 
+	              React.createElement(Button, {events: this.events, name: "COLOR", glyph: "tint"}), 
+	              React.createElement(Button, {events: this.events, name: "ANALYZE", glyph: "stats"}), 
+	              React.createElement(Button, {events: this.events, name: "ABOUT", glyph: "info-sign"})
+	        ), 
+	        React.createElement("div", {id: "periodicTable", className: "navCenter navBottom"}, 
+	              React.createElement(Button, {events: this.events, name: "DENSITY", glyph: "", type: "sub"}), 
+	              React.createElement(Button, {events: this.events, name: "MELTING", glyph: "", type: "sub"}), 
+	              React.createElement(Button, {events: this.events, name: "BOILING", glyph: "", type: "sub"}), 
+	              React.createElement(Button, {events: this.events, name: "FREEZING", glyph: "", type: "sub"}), 
+	              React.createElement(Button, {events: this.events, name: "IONICRADIUS", glyph: "", type: "sub"}), 
+	              React.createElement(Button, {events: this.events, name: "ATOMICRADIUS", glyph: "", type: "sub"}), 
+	              React.createElement(Button, {events: this.events, name: "COVALENTRADIUS", glyph: "", type: "sub"}), 
+	              React.createElement(Button, {events: this.events, name: "SPECIFICHEAT", glyph: "", type: "sub"}), 
+	              React.createElement(Button, {events: this.events, name: "SPECIFICVOLUME", glyph: "", type: "sub"})
 	        )
 	      )
 	    );
@@ -20742,11 +20956,11 @@
 
 
 /***/ },
-/* 172 */
+/* 173 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/** @jsx React.DOM */var React = __webpack_require__(1);
-	var gs = __webpack_require__(173);
+	var gs = __webpack_require__(159);
 	
 	module.exports = React.createClass({displayName: "module.exports",
 	
@@ -20767,16 +20981,34 @@
 	    var clickClass = this.state.clicked
 	      ? "active"
 	      : "";
+	
+	      if(this.props.glyph)
+	      {
 	      var glyphClass = "glyphicon glyphicon-" + this.props.glyph;
-	      var textClass = "hidden-xs navText";
+	    }
+	    else {
+	      var glyphClass = "";
+	    }
+	
+	    var textClass = "navText";
+	
+	    if(!this.props.type && this.props.type != 'sub')
+	    {
+	      textClass += " hidden-xs";
+	    }
+	
+	      var classNames = "btnTop";
+	
+	      if(this.props.hide)
+	      {
+	        classNames += " hidden-xs";
+	      }
 	
 	    return (
-	      React.createElement("li", {className: clickClass}, 
-	        React.createElement("a", {onClick: this.click, href: "#"}, 
+	        React.createElement("a", {onClick: this.click, href: "#", className: classNames}, 
 	          React.createElement("span", {className: glyphClass, "aria-hidden": "true"}), 
 	          React.createElement("span", {className: textClass}, this.props.name)
 	        )
-	      )
 	    );
 	  },
 	
@@ -20789,69 +21021,6 @@
 		}
 	
 	});
-
-
-/***/ },
-/* 173 */
-/***/ function(module, exports) {
-
-	module.exports = {
-	
-	  register: function(component, groups, state) {
-	
-	    state = state || {};
-	    groups = groups || [];
-	
-	    var uniqueId = _uniqueId++;
-	    _components[uniqueId] = {
-	      uniqueId: uniqueId,
-	      reference: component,
-	      state: state,
-	      groups: groups
-	    };
-	
-	    return uniqueId;
-	  },
-	
-	  unregister: function(uniqueId) {
-	    _components.forEach(function(component, index) {
-	      if (component.uniqueId === uniqueId) {
-	        component.splice(index, 1);
-	        return;
-	      }
-	    });
-	  },
-	
-	  getState: function(stateID) {
-	    var component = getComponent(stateID);
-	    return component.state;
-	  },
-	
-	  setState: function(stateID, state) {
-	    _components[stateID].state = state;
-	  },
-	
-	  eachComponent: function(config, func) {
-	
-	    var targetGroup = config.group;
-	    var ignoreId = config.ignoreId || -1;
-	
-	    _components.forEach(function(component) {
-	      component.groups.forEach(function(group) {
-	        if (group == targetGroup && ignoreId != component.uniqueId) {
-	          func(component);
-	        }
-	      });
-	    });
-	  }
-	}
-	
-	function getComponent(stateID) {
-	  return _components[stateID];
-	}
-	
-	var _uniqueId = 0;
-	var _components = [];
 
 
 /***/ },

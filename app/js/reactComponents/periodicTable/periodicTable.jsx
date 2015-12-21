@@ -14,6 +14,12 @@ module.exports = React.createClass({
 
 		elements.forEach(function(element){
 
+			var propName = "Density-gcc";
+			var prop = hf.containsProperty(elements,propName);
+			var range = Math.abs(prop.absMax) + Math.abs(prop.absMin);
+			var percent = 1-Number(element[propName])/range;
+			var hexColor = Math.round(percent*255);
+
 			cells.push(<Element test={Math.random()}
 			element={element.Symbol}
 			key={element.AtomicNumber}
@@ -21,6 +27,7 @@ module.exports = React.createClass({
 			mass={element.Atomic_Weight}
 			period={element.Period}
 			group={element.Group}
+			hexColor={hexColor}
 			/>);
 
 	});

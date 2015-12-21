@@ -19,18 +19,26 @@ events: {
   render: function()
   {
     return(
-      <nav onClick={this.click} className="navbar navbar-inverse navbar-static-top">
-        <div className="container-fluid">
-          <div>
-            <ul className="nav navbar-nav">
-              <Button events={this.events} name="Periodic Table" glyph="list-alt" />
-              <Button events={this.events} name="Icons" glyph="th-large" />
-              <Button events={this.events} name="Compare" glyph="resize-horizontal" />
-              <Button events={this.events} name="About" glyph="info-sign" />
-            </ul>
-          </div>
+      <div onClick={this.click} className="navParent">
+        <div className="navCenter navTop">
+              <Button hide={true} events={this.events} name="VIEW" glyph="eye-open" />
+              <Button events={this.events} name="SORT" glyph="resize-vertical" />
+              <Button events={this.events} name="COLOR" glyph="tint" />
+              <Button events={this.events} name="ANALYZE" glyph="stats" />
+              <Button events={this.events} name="ABOUT" glyph="info-sign" />
         </div>
-      </nav>
+        <div id="periodicTable" className="navCenter navBottom">
+              <Button events={this.events} name="DENSITY" glyph="" type="sub" />
+              <Button events={this.events} name="MELTING" glyph="" type="sub"/>
+              <Button events={this.events} name="BOILING" glyph="" type="sub"/>
+              <Button events={this.events} name="FREEZING" glyph="" type="sub"/>
+              <Button events={this.events} name="IONICRADIUS" glyph="" type="sub"/>
+              <Button events={this.events} name="ATOMICRADIUS" glyph="" type="sub"/>
+              <Button events={this.events} name="COVALENTRADIUS" glyph="" type="sub"/>
+              <Button events={this.events} name="SPECIFICHEAT" glyph="" type="sub"/>
+              <Button events={this.events} name="SPECIFICVOLUME" glyph="" type="sub"/>
+        </div>
+      </div>
     );
   }
 });
