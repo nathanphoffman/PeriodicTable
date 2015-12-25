@@ -1,33 +1,44 @@
 var Element = require('./element.jsx');
-var hf= require('./../../helperFunctions.js');
 var transitions = require('./../general/transitions.jsx');
 var React = require('react');
+var gs = require('./../globalState.js');
+
+var color = require('./actions/color.js');
 
 module.exports = React.createClass({
+
+
+	componentDidMount: function() {
+		this.uniqueId = gs.register(this, ['table']);
+	},
+
+	componentWillUnmount: function(){
+		gs.unregister(this.uniqueId);
+	},
+
+	getInitialState: function(){
+		return {};
+	},
 
 		render: function(){
 
 		var elements = this.props.elements;
-
-		console.log(elements);
 		var cells = [];
 
+		// This is to save resources and perform loops before individual elements are created
+		var config = color.prepare(elements);
+
+		var key = 0;
 		elements.forEach(function(element){
-
-			var propName = "Density-gcc";
-			var prop = hf.containsProperty(elements,propName);
-			var range = Math.abs(prop.absMax) + Math.abs(prop.absMin);
-			var percent = 1-Number(element[propName])/range;
-			var hexColor = Math.round(percent*255);
-
+			key++;
 			cells.push(<Element test={Math.random()}
 			element={element.Symbol}
-			key={element.AtomicNumber}
+			key={key}
 			number={element.AtomicNumber}
 			mass={element.Atomic_Weight}
 			period={element.Period}
 			group={element.Group}
-			hexColor={hexColor}
+			hexColor={color.getColor(element,config)}
 			/>);
 
 	});

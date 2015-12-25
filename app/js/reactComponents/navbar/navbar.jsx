@@ -2,42 +2,43 @@
 var React = require('react');
 var Button = require('./button.jsx');
 var gs = require('./../globalState.js');
-//var registry = require('./../registry.js');
-//var Button = require("./../registry_data.js");
-//var Button = registry.getComponent('navbar','Button');
-
-console.log(Button);
+var NavbarBottom = require('./navbarBottom.jsx');
+var hf= require('./../../helperFunctions.js');
 
 module.exports = React.createClass({
 
-events: {
-  self: this,
-  linkClick: function(state){
-    self.state();
-  }},
+  getInitialState: function(){
+    return {type: 'view'};
+  },
+
+  click: function(handler){
+    hf.btnHandler(handler,this);
+  },
+
+  isActive: function(button){
+
+    console.log(this.state.type);
+
+    if(this.state.type !== undefined && button == this.state.type)
+    {
+      return 'active';
+    }
+
+    return '';
+  },
 
   render: function()
   {
     return(
-      <div onClick={this.click} className="navParent">
-        <div className="navCenter navTop">
-              <Button hide={true} events={this.events} name="VIEW" glyph="eye-open" />
-              <Button events={this.events} name="SORT" glyph="resize-vertical" />
-              <Button events={this.events} name="COLOR" glyph="tint" />
-              <Button events={this.events} name="ANALYZE" glyph="stats" />
-              <Button events={this.events} name="ABOUT" glyph="info-sign" />
+      <div className="navParent">
+        <div onClick={this.click} className="navCenter navTop">
+              <Button activeClass={this.isActive('VIEW')} hide={true} name="VIEW" glyph="eye-open" />
+              <Button activeClass={this.isActive('SORT')} name="SORT" glyph="resize-vertical" />
+              <Button activeClass={this.isActive('COLOR')} name="COLOR" glyph="tint" />
+              <Button activeClass={this.isActive('ANALYZE')} name="ANALYZE" glyph="stats" />
+              <Button activeClass={this.isActive('ABOUT')} name="ABOUT" glyph="info-sign" />
         </div>
-        <div id="periodicTable" className="navCenter navBottom">
-              <Button events={this.events} name="DENSITY" glyph="" type="sub" />
-              <Button events={this.events} name="MELTING" glyph="" type="sub"/>
-              <Button events={this.events} name="BOILING" glyph="" type="sub"/>
-              <Button events={this.events} name="FREEZING" glyph="" type="sub"/>
-              <Button events={this.events} name="IONICRADIUS" glyph="" type="sub"/>
-              <Button events={this.events} name="ATOMICRADIUS" glyph="" type="sub"/>
-              <Button events={this.events} name="COVALENTRADIUS" glyph="" type="sub"/>
-              <Button events={this.events} name="SPECIFICHEAT" glyph="" type="sub"/>
-              <Button events={this.events} name="SPECIFICVOLUME" glyph="" type="sub"/>
-        </div>
+        <NavbarBottom type={this.state.type}></NavbarBottom>
       </div>
     );
   }

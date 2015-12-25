@@ -25,13 +25,13 @@ module.exports = {
     });
   },
 
-  getState: function(stateID) {
-    var component = getComponent(stateID);
+  getState: function(uniqueId) {
+    var component = getComponent(uniqueId);
     return component.state;
   },
 
-  setState: function(stateID, state) {
-    _components[stateID].state = state;
+  setState: function(uniqueId, state) {
+    _components[uniqueId].state = state;
   },
 
   eachComponent: function(config, func) {
@@ -46,11 +46,35 @@ module.exports = {
         }
       });
     });
+  },
+
+  getTopMember: function(targetGroup)
+  {
+    var comp = null;
+
+    _components.forEach(function(component) {
+      component.groups.forEach(function(group) {
+        if (group == targetGroup) {
+          comp = component;
+        }
+      });
+    });
+
+    return comp;
   }
+
+/*
+  setTopMemberState: function(targetGroup,state)
+  {
+    var member = this.
+  }
+  */
+
+  //
 }
 
-function getComponent(stateID) {
-  return _components[stateID];
+function getComponent(uniqueId) {
+  return _components[uniqueId];
 }
 
 var _uniqueId = 0;

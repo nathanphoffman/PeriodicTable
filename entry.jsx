@@ -17,7 +17,6 @@
 
     function resize()
     {
-
       gs.eachComponent({group: 'resize'},
   		function(component) {
         component.reference.setState({resize: true});

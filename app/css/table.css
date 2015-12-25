@@ -63,37 +63,83 @@ background-color: #fafafa;
 
 /* Navbar - Top */
 
-.btnTop
+a.active
 {
-  margin-left: 5%;
-  margin-right: 5%;
-  text-decoration: none;
+  background-color: #222;
+  height: 100%;
 }
 
-.btnTop:hover
+a.btnTop
 {
-  color: #fff;
+  margin-left: 1%;
+  margin-right: 1%;
+  text-decoration: none;
+  color: #ddd;
+  padding: 10px;
+}
+
+a.btnTop:hover
+{
+  color: #fff !important;
   font-style:normal;
   text-decoration: none;
 }
+
+a.btnTop:visited
+{
+  color:#ddd;
+}
+
+
+a.activeAction{
+  color: #fff !important;
+}
+
+a.activeActionAdd{
+  color: #00ff00 !important;
+}
+
+a.activeActionSubtract{
+  color: #ff0000 !important;
+}
+
+a.btnAction
+{
+  margin-left: 1%;
+  margin-right: 1%;
+  text-decoration: none;
+  color: #bbb;
+  padding-top: 10px;
+  padding-bottom: 10px;
+  padding-right: 4px;
+  padding-left: 4px;
+}
+
+a.btnAction:hover
+{
+  font-style:normal;
+  text-decoration: none;
+}
+
+a.btnAction:visited
+{
+  color:#bbb;
+}
+
 
 
 .glyphicon{
   font-size: 20px;
-  color: #ddd;
+  margin-right: 5px;
 }
 
-.glyphicon:hover
-{
-  color: #fff;
-  font-style:normal;
-}
 
 .navParent
 {
   border: 1px solid #000;
   width: 100%;
 }
+
 
 .navCenter
 {
@@ -105,13 +151,20 @@ background-color: #fafafa;
 .navTop
 {
   background-color: #333;
-  height: 45px;
+  height: 48px;
 }
 
 .navBottom
 {
+
+  /*This allows scrolling*/
+  /*
+  overflow-x: scroll;
+  white-space:nowrap;
+  overflow-y:hidden;
+*/
   background-color: #222;
-  height: 35px;
+  min-height: 48px;
   color: #ddd;
   -webkit-box-shadow: 0px 4px 5px 0px rgba(0,0,0,0.75);
   -moz-box-shadow: 0px 4px 5px 0px rgba(0,0,0,0.75);
@@ -121,20 +174,13 @@ background-color: #fafafa;
 
 .navText
 {
-  font-family: 'Roboto', sans-serif;
+  font-family: 'Roboto', sans-serif;\
   margin-left:5px;
   margin-bottom: 5px;
   padding-bottom: 15px;
   font-size: 12px;
   font-weight: bold;
-  color: #888;
   font-style: normal;
   height: 100%;
   vertical-align: middle;
-}
-
-.navText:hover
-{
-  color: #fff;
-  font-style:normal;
 }

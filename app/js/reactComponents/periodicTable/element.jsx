@@ -12,8 +12,6 @@ module.exports = React.createClass({
     var btnClass = "btn btn-default";
     var hexColor = this.props.hexColor || "#fff";
 
-    console.log(hexColor);
-
     //var left = this.props
     var width = window.innerWidth
     || document.documentElement.clientWidth
@@ -21,8 +19,12 @@ module.exports = React.createClass({
 
     var btnStyle = {};
     var mass = "";
+
+    // We must make the text color different than background, we take 125 as the midpoint
+    //  to determine if it is dark or light
     var text = hexColor > 125 ? 50 : 210;
 
+    // This controls the responsiveness of the elements/table
     if(width >= 1800 && !this.state.iconView)
     {
       btnStyle = this.extendedTable(2.7,6.5);

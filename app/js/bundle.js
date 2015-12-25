@@ -63,7 +63,6 @@
 	
 	    function resize()
 	    {
-	
 	      gs.eachComponent({group: 'resize'},
 	  		function(component) {
 	        component.reference.setState({resize: true});
@@ -19697,13 +19696,13 @@
 	    });
 	  },
 	
-	  getState: function(stateID) {
-	    var component = getComponent(stateID);
+	  getState: function(uniqueId) {
+	    var component = getComponent(uniqueId);
 	    return component.state;
 	  },
 	
-	  setState: function(stateID, state) {
-	    _components[stateID].state = state;
+	  setState: function(uniqueId, state) {
+	    _components[uniqueId].state = state;
 	  },
 	
 	  eachComponent: function(config, func) {
@@ -19718,11 +19717,35 @@
 	        }
 	      });
 	    });
+	  },
+	
+	  getTopMember: function(targetGroup)
+	  {
+	    var comp = null;
+	
+	    _components.forEach(function(component) {
+	      component.groups.forEach(function(group) {
+	        if (group == targetGroup) {
+	          comp = component;
+	        }
+	      });
+	    });
+	
+	    return comp;
 	  }
+	
+	/*
+	  setTopMemberState: function(targetGroup,state)
+	  {
+	    var member = this.
+	  }
+	  */
+	
+	  //
 	}
 	
-	function getComponent(stateID) {
-	  return _components[stateID];
+	function getComponent(uniqueId) {
+	  return _components[uniqueId];
 	}
 	
 	var _uniqueId = 0;
@@ -19731,58 +19754,146 @@
 
 /***/ },
 /* 160 */
-/***/ function(module, exports) {
+/***/ function(module, exports, __webpack_require__) {
 
+	var React = __webpack_require__(1);
+	
 	module.exports = {
-		containsProperty: function (arr, prop, value) {
-			if (!value) {
-				value = null;
+	  containsProperty: function(arr, prop, value) {
+	    if (!value) {
+	      value = null;
+	    }
+	
+	    var result = {
+	      arr: [],
+	      max: 0
+	    };
+	
+			var last = null;
+	
+	    arr.forEach(function(e) {
+	
+				// This gets max/min values in the array, needs rewrite
+	      if (e[prop] === value) {
+	        result.arr.push(e);
+	        result.max = e[prop] > result.max
+	          ? e[prop]
+	          : result.max;
+	      }
+	
+	      if (!result.absMax && e[prop]) {
+	        result.absMax = e[prop];
+	      }
+	
+	      if (!result.absMin && e[prop]) {
+	        result.absMin = e[prop];
+	      }
+	
+	      result.absMax = e[prop] > result.absMax
+	        ? e[prop]
+	        : result.absMax;
+	      result.absMin = e[prop] < result.absMin
+	        ? e[prop]
+	        : result.absMin;
+	
+	    });
+	
+	    return result;
+	  },
+	
+	  debounce: function(func, wait, immediate) {
+	    var timeout;
+	    return function() {
+	      var context = this,
+	        args = arguments;
+	      var later = function() {
+	        timeout = null;
+	        if (!immediate)
+	          func.apply(context, args);
+	        };
+	      var callNow = immediate && !timeout;
+	      clearTimeout(timeout);
+	      timeout = setTimeout(later, wait);
+	      if (callNow)
+	        func.apply(context, args);
+	      };
+	  },
+	
+	  btnHandler: function(handler, component) {
+	    var type = handler.target.parentElement.id;
+	
+	    if (handler.target.id != "") {component.setState({type: handler.target.id});} else if (type !== undefined && type != "") {component.setState({type: type});}
+	  },
+	
+	  getIndexByAttr: function(array, attr, value) {
+	    var index = -1;
+	
+	    for (var i = 0; i < array.length; i++) {
+	      if (array[i][attr] === value) {return i;}
+	    }
+	
+	    return -1;
+	  },
+	
+	  removeFromArray: function(array, attr, value) {
+	    var index = this.getIndexByAttr(array, attr, value);
+	    array.splice(index, 1);
+	    return array;
+	  },
+	
+	  sortObjectArray: function(objArray, attr) {
+	
+			var newArr = objArray;
+	
+	    function compare(a, b) {
+	      if (a[attr] < b[attr])
+	        return -1;
+	      if (a[attr] > b[attr])
+	        return 1;
+	      return 0;
+	    }
+	
+	    return newArr.sort(compare);
+	  },
+	
+		getRankingInArray: function(arr,prop,value)
+		{
+	
+			if(isNaN(value))
+			{
+				return NaN;
 			}
 	
-			var result = {
-				arr: [],
-				max: 0
-			};
+				var ranking = 0;
+				var last = null;
 	
-			arr.forEach(function (e) {
+				arr.forEach(function(e) {
+					// get ranking by comparing last value to current
+					if(last === null) { last = e[prop] };
 	
-				if (e[prop] === value) {
-					result.arr.push(e);
-					result.max = e[prop] > result.max ? e[prop] : result.max;
-				}
+					if(value > last)
+					{
+						ranking++;
+					}
 	
-				if(!result.absMax && e[prop])
-				{
-					result.absMax = e[prop];
-				}
+					last = e[prop];
+				});
 	
-				if(!result.absMin && e[prop])
-				{
-					result.absMin = e[prop];
-				}
-	
-				result.absMax = e[prop] > result.absMax ? e[prop] : result.absMax;
-				result.absMin = e[prop] < result.absMin ? e[prop] : result.absMin;
-	
-			});
-	
-			return result;
+				return ranking;
 		},
 	
-		debounce: function(func, wait, immediate){
-				var timeout;
-				return function() {
-					var context = this, args = arguments;
-					var later = function() {
-						timeout = null;
-						if (!immediate) func.apply(context, args);
-					};
-					var callNow = immediate && !timeout;
-					clearTimeout(timeout);
-					timeout = setTimeout(later, wait);
-					if (callNow) func.apply(context, args);
-				};
+		getValidArrayLength: function(elements,prop){
+			var length = 1;
+			elements.forEach(function(element){
+				if(!isNaN(element[prop]))
+				{
+					length++;
+				}
+			});
+	
+			return length;
 		}
+	
 	}
 
 
@@ -19792,8 +19903,8 @@
 
 	/** @jsx React.DOM */var React = __webpack_require__(1);
 	var PeriodicTable = __webpack_require__(162);
-	var Navbar = __webpack_require__(172);
-	var ajax = __webpack_require__(174);
+	var Navbar = __webpack_require__(174);
+	var ajax = __webpack_require__(177);
 	
 	//var N = require("./registry.js").getComponent('navbar');
 	//var P = require("./registry.js").getComponent('periodicTable');
@@ -19834,35 +19945,46 @@
 /***/ function(module, exports, __webpack_require__) {
 
 	/** @jsx React.DOM */var Element = __webpack_require__(163);
-	var hf= __webpack_require__(160);
 	var transitions = __webpack_require__(164);
 	var React = __webpack_require__(1);
+	var gs = __webpack_require__(159);
+	
+	var color = __webpack_require__(172);
 	
 	module.exports = React.createClass({displayName: "module.exports",
+	
+	
+		componentDidMount: function() {
+			this.uniqueId = gs.register(this, ['table']);
+		},
+	
+		componentWillUnmount: function(){
+			gs.unregister(this.uniqueId);
+		},
+	
+		getInitialState: function(){
+			return {};
+		},
 	
 			render: function(){
 	
 			var elements = this.props.elements;
-	
-			console.log(elements);
 			var cells = [];
 	
+			// This is to save resources and perform loops before individual elements are created
+			var config = color.prepare(elements);
+	
+			var key = 0;
 			elements.forEach(function(element){
-	
-				var propName = "Density-gcc";
-				var prop = hf.containsProperty(elements,propName);
-				var range = Math.abs(prop.absMax) + Math.abs(prop.absMin);
-				var percent = 1-Number(element[propName])/range;
-				var hexColor = Math.round(percent*255);
-	
+				key++;
 				cells.push(React.createElement(Element, {test: Math.random(), 
 				element: element.Symbol, 
-				key: element.AtomicNumber, 
+				key: key, 
 				number: element.AtomicNumber, 
 				mass: element.Atomic_Weight, 
 				period: element.Period, 
 				group: element.Group, 
-				hexColor: hexColor}
+				hexColor: color.getColor(element,config)}
 				));
 	
 		});
@@ -19936,8 +20058,6 @@
 	    var btnClass = "btn btn-default";
 	    var hexColor = this.props.hexColor || "#fff";
 	
-	    console.log(hexColor);
-	
 	    //var left = this.props
 	    var width = window.innerWidth
 	    || document.documentElement.clientWidth
@@ -19945,8 +20065,12 @@
 	
 	    var btnStyle = {};
 	    var mass = "";
+	
+	    // We must make the text color different than background, we take 125 as the midpoint
+	    //  to determine if it is dark or light
 	    var text = hexColor > 125 ? 50 : 210;
 	
+	    // This controls the responsiveness of the elements/table
 	    if(width >= 1800 && !this.state.iconView)
 	    {
 	      btnStyle = this.extendedTable(2.7,6.5);
@@ -20909,46 +21033,181 @@
 /* 172 */
 /***/ function(module, exports, __webpack_require__) {
 
+	var gs = __webpack_require__(159);
+	var hf = __webpack_require__(160);
+	var status = __webpack_require__(173);
+	
+	module.exports = {
+	
+	  load: function(handler) {
+	    //gs.setState({});
+	    //console.log("would have loaded " + this.field);
+	    var ctrlKey = handler.ctrlKey || false;
+	    handler.preventDefault();
+	
+	    // reset to default if empty string
+	    if (this.field == "") {
+	      styledElements.splice(0, styledElements.length);
+	      curve = 0;
+	    } else if (this.field == 'curve') {
+	      curve = !curve;
+	    } else {
+	      // only allow one of each prop to be added
+	      var index = hf.getIndexByAttr(styledElements, 'propName', this.field);
+	
+	      if (index === -1) {
+	        styledElements.push({
+	          propName: this.field,
+	          subtract: ctrlKey
+	        });
+	      }
+	      // otherwise remove it:
+	      else {
+	        styledElements.splice(index, 1);
+	      }
+	    }
+	
+	    var table = gs.getTopMember('table');
+	    table.reference.setState({});
+	
+	    // sets button styles
+	    this.reference.setState({
+	      styledElements: styledElements,
+	      curve: curve
+	    });
+	  },
+	
+	  // We prepare the full elements array, get ranges and sort to improve performance
+	  prepare: function(elements) {
+	
+	    var result = {
+	      ranges: [],
+	      elements: elements
+	    };
+	
+	    styledElements.forEach(function(styledElement) {
+	      var propName = styledElement.propName;
+	      var prop = hf.containsProperty(elements, propName);
+	
+	      if (!curve) {
+	        result.ranges[propName] = Math.abs(prop.absMax) + Math.abs(prop.absMin);
+	      }
+	      else {
+	        result.ranges[propName] = hf.getValidArrayLength(elements,propName);
+	      }
+	    });
+	
+	    return result;
+	
+	  },
+	
+	  // Gets the color based on prepare() and the value of the element prop
+	  getColor: function(element,config) {
+	
+	    var ranges = config.ranges;
+	    var sortedElements = config.sortedElements;
+	    var elements = config.elements;
+	
+	    // White is default if no colors are applied
+	    if (styledElements.length == 0) {
+	      return 255;
+	    }
+	
+	    var total = 0;
+	    var skip = false;
+	
+	    styledElements.forEach(function(styledElement) {
+	      var propName = styledElement.propName;
+	      var range = ranges[propName];
+	      var value = null;
+	
+	      if (!curve) {
+	        value = element[propName];
+	      } else {
+	        value = hf.getRankingInArray(elements,propName,element[propName]);
+	          //console.log(value);
+	      }
+	
+	      if(isNaN(value))
+	      {
+	        skip = true;
+	        return;
+	      }
+	      else {
+	        total += Number(value / range);
+	        total = styledElement.subtract ? 1 - total : total;
+	      }
+	
+	    }.bind(this));
+	
+	    if(skip) { return NaN; }
+	
+	    var percent = (total / styledElements.length);
+	    var color = Math.ceil(255 - percent * 255);
+	    return color;
+	
+	  }
+	
+	}
+	
+	var styledElements = [];
+	var curve = false;
+
+
+/***/ },
+/* 173 */
+/***/ function(module, exports) {
+
+	module.exports = {
+	  
+	}
+
+
+/***/ },
+/* 174 */
+/***/ function(module, exports, __webpack_require__) {
+
 	/** @jsx React.DOM */
 	var React = __webpack_require__(1);
-	var Button = __webpack_require__(173);
+	var Button = __webpack_require__(175);
 	var gs = __webpack_require__(159);
-	//var registry = require('./../registry.js');
-	//var Button = require("./../registry_data.js");
-	//var Button = registry.getComponent('navbar','Button');
-	
-	console.log(Button);
+	var NavbarBottom = __webpack_require__(176);
+	var hf= __webpack_require__(160);
 	
 	module.exports = React.createClass({displayName: "module.exports",
 	
-	events: {
-	  self: this,
-	  linkClick: function(state){
-	    self.state();
-	  }},
+	  getInitialState: function(){
+	    return {type: 'view'};
+	  },
+	
+	  click: function(handler){
+	    hf.btnHandler(handler,this);
+	  },
+	
+	  isActive: function(button){
+	
+	    console.log(this.state.type);
+	
+	    if(this.state.type !== undefined && button == this.state.type)
+	    {
+	      return 'active';
+	    }
+	
+	    return '';
+	  },
 	
 	  render: function()
 	  {
 	    return(
-	      React.createElement("div", {onClick: this.click, className: "navParent"}, 
-	        React.createElement("div", {className: "navCenter navTop"}, 
-	              React.createElement(Button, {hide: true, events: this.events, name: "VIEW", glyph: "eye-open"}), 
-	              React.createElement(Button, {events: this.events, name: "SORT", glyph: "resize-vertical"}), 
-	              React.createElement(Button, {events: this.events, name: "COLOR", glyph: "tint"}), 
-	              React.createElement(Button, {events: this.events, name: "ANALYZE", glyph: "stats"}), 
-	              React.createElement(Button, {events: this.events, name: "ABOUT", glyph: "info-sign"})
+	      React.createElement("div", {className: "navParent"}, 
+	        React.createElement("div", {onClick: this.click, className: "navCenter navTop"}, 
+	              React.createElement(Button, {activeClass: this.isActive('VIEW'), hide: true, name: "VIEW", glyph: "eye-open"}), 
+	              React.createElement(Button, {activeClass: this.isActive('SORT'), name: "SORT", glyph: "resize-vertical"}), 
+	              React.createElement(Button, {activeClass: this.isActive('COLOR'), name: "COLOR", glyph: "tint"}), 
+	              React.createElement(Button, {activeClass: this.isActive('ANALYZE'), name: "ANALYZE", glyph: "stats"}), 
+	              React.createElement(Button, {activeClass: this.isActive('ABOUT'), name: "ABOUT", glyph: "info-sign"})
 	        ), 
-	        React.createElement("div", {id: "periodicTable", className: "navCenter navBottom"}, 
-	              React.createElement(Button, {events: this.events, name: "DENSITY", glyph: "", type: "sub"}), 
-	              React.createElement(Button, {events: this.events, name: "MELTING", glyph: "", type: "sub"}), 
-	              React.createElement(Button, {events: this.events, name: "BOILING", glyph: "", type: "sub"}), 
-	              React.createElement(Button, {events: this.events, name: "FREEZING", glyph: "", type: "sub"}), 
-	              React.createElement(Button, {events: this.events, name: "IONICRADIUS", glyph: "", type: "sub"}), 
-	              React.createElement(Button, {events: this.events, name: "ATOMICRADIUS", glyph: "", type: "sub"}), 
-	              React.createElement(Button, {events: this.events, name: "COVALENTRADIUS", glyph: "", type: "sub"}), 
-	              React.createElement(Button, {events: this.events, name: "SPECIFICHEAT", glyph: "", type: "sub"}), 
-	              React.createElement(Button, {events: this.events, name: "SPECIFICVOLUME", glyph: "", type: "sub"})
-	        )
+	        React.createElement(NavbarBottom, {type: this.state.type})
 	      )
 	    );
 	  }
@@ -20956,7 +21215,7 @@
 
 
 /***/ },
-/* 173 */
+/* 175 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/** @jsx React.DOM */var React = __webpack_require__(1);
@@ -20964,70 +21223,179 @@
 	
 	module.exports = React.createClass({displayName: "module.exports",
 	
-	  getInitialState: function() {
-	    return {clicked: false};
-	  },
-	
-	  click: function() {
-	    gs.eachComponent({group: 'button', ignoreId: this.uniqueId},
-			function(component) {
-	      component.reference.setState({clicked: false});
-	    });
-	
-			this.setState({clicked: true});
-	  },
-	
 	  render: function() {
-	    var clickClass = this.state.clicked
-	      ? "active"
-	      : "";
 	
-	      if(this.props.glyph)
-	      {
-	      var glyphClass = "glyphicon glyphicon-" + this.props.glyph;
+	    var classNames = "";
+	
+	    if (this.props.type && this.props.type == "sub") {
+	      classNames += "btnAction ";
+	    } else {
+	      classNames += "btnTop ";
 	    }
-	    else {
+	
+	    // set active class
+	    if (this.props.activeClass !== null && this.props.activeClass) {
+	      classNames += this.props.activeClass + ' ';
+	    }
+	
+	    if (this.props.glyph) {
+	      var glyphClass = "glyphicon glyphicon-" + this.props.glyph;
+	    } else {
 	      var glyphClass = "";
 	    }
 	
-	    var textClass = "navText";
+	    var textClass = "navText hidden-xs";
 	
-	    if(!this.props.type && this.props.type != 'sub')
-	    {
-	      textClass += " hidden-xs";
+	    if (this.props.type && this.props.type == 'sub') {
+	      textClass += " hidden-sm";
 	    }
 	
-	      var classNames = "btnTop";
+	    if (this.props.hide) {
+	      classNames += " hidden-xs";
+	    }
 	
-	      if(this.props.hide)
-	      {
-	        classNames += " hidden-xs";
-	      }
+	    var click = function() {};
+	
+	    if (this.props.click && typeof this.props.click === 'function') {
+	      click = this.props.click;
+	    }
 	
 	    return (
-	        React.createElement("a", {onClick: this.click, href: "#", className: classNames}, 
-	          React.createElement("span", {className: glyphClass, "aria-hidden": "true"}), 
-	          React.createElement("span", {className: textClass}, this.props.name)
-	        )
+	      React.createElement("a", {href: "#", onClick: this.props.click, id: this.props.name, className: classNames}, 
+	        React.createElement("span", {className: glyphClass, "aria-hidden": "true"}), 
+	        React.createElement("span", {className: textClass}, this.props.name)
+	      )
 	    );
-	  },
-	
-	  componentDidMount: function() {
-	    this.uniqueId = gs.register(this, ['button']);
-	  },
-	
-		componentWillUnmount: function(){
-			gs.unregister(this.uniqueId);
-		}
+	  }
 	
 	});
 
 
 /***/ },
-/* 174 */
+/* 176 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var $ = __webpack_require__(175);
+	/** @jsx React.DOM */var React = __webpack_require__(1);
+	var Button = __webpack_require__(175);
+	var gs = __webpack_require__(159);
+	var transitions = __webpack_require__(164);
+	var hf = __webpack_require__(160);
+	
+	var color = __webpack_require__(172);
+	
+	module.exports = React.createClass({displayName: "module.exports",
+	
+	  getButtons: function(arr, func) {
+	
+	    var arrComponent = [];
+	
+	    arr.forEach(function(component, index) {
+	
+	      var activeClass = "";
+	
+	      if (component.field == 'curve') {
+	        if (this.state && this.state.curve) {
+	          activeClass = "activeAction";
+	        }
+	      } else if (this.state && this.state.styledElements) {this.state.styledElements.forEach(function(element) {
+	          if (element.propName == component.field) {
+	            activeClass = element.subtract
+	              ? "activeActionSubtract"
+	              : "activeActionAdd";
+	          }
+	        });}
+	
+	      // We use this to call back to the individual button
+	      component['reference'] = this;
+	
+	      arrComponent.push(
+	        React.createElement(Button, {
+	          key: index, 
+	          glyph: component.glyph, 
+	          click: func.bind(component), 
+	          activeClass: activeClass, 
+	          name: component.name, 
+	          type: "sub"})
+	      );
+	
+	    }.bind(this));
+	
+	    return arrComponent;
+	  },
+	
+	  buttonDefs: function() {
+	    switch (this.props.type)
+	    {case "COLOR":
+	        return this.getButtons([
+	          {
+	            name: 'CLEAR',
+	            field: '',
+	            glyph: 'ban-circle'
+	          }, {
+	            name: 'CURVE',
+	            field: 'curve',
+	            glyph: 'signal'
+	          },
+	          {
+	            name: 'MELTING',
+	            field: 'MeltingPoint-C',
+	            glyph: 'tint'
+	          },
+	          {
+	            name: 'ATOMICRADIUS',
+	            field: 'AtomicRadius',
+	            glyph:'resize-full'
+	          },
+	          {
+	            name: 'SPECIFICHEAT',
+	            field: 'SpecificHeat',
+	            glyph: 'fire'
+	          }, {
+	            name: 'DENSITY',
+	            field: 'Density-gcc',
+	            glyph: 'scale'
+	          },
+	          {
+	            name: 'ELECTRONEGATIVITY',
+	            field: 'PaulingElectronegativity',
+	            glyph: 'flash'
+	          },
+	        ], color.load);
+	
+	        //electronegativity glyph: flash
+	
+	        case "ANALYZE":
+	          return this.getButtons([
+	            {
+	              name: 'GRAPH'
+	            }, {
+	              name: 'TABLE'
+	            }, {
+	              name: 'UNSELECT'
+	            }
+	          ], function() {});}
+	
+	        return [];
+	      },
+	
+	      render: function() {
+	        var buttons = this.buttonDefs();
+	        //transitions.fadeIn(
+	        return (
+	          React.createElement("span", null, 
+	          React.createElement("div", {id: "periodicTable", className: "navCenter navBottom"}, buttons)
+	          )
+	        );
+	
+	      }
+	    });
+
+
+/***/ },
+/* 177 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var $ = __webpack_require__(178);
 	
 	module.exports = {
 		get: function (url,callback,num) {
@@ -21048,7 +21416,7 @@
 	}
 
 /***/ },
-/* 175 */
+/* 178 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;/*!
