@@ -19902,9 +19902,14 @@
 /***/ function(module, exports, __webpack_require__) {
 
 	/** @jsx React.DOM */var React = __webpack_require__(1);
+	
 	var PeriodicTable = __webpack_require__(162);
-	var Navbar = __webpack_require__(174);
-	var ajax = __webpack_require__(177);
+	var Navbar = __webpack_require__(178);
+	var Modal = __webpack_require__(164);
+	
+	var ajax = __webpack_require__(181);
+	var csvToJson = __webpack_require__(183);
+	var gs = __webpack_require__(159);
 	
 	//var N = require("./registry.js").getComponent('navbar');
 	//var P = require("./registry.js").getComponent('periodicTable');
@@ -19913,19 +19918,37 @@
 	  getInitialState: function() {
 	    return {
 	      data: [],
-	      length: 0
+	      length: 0,
+	      displayElement: null
 	    }
 	  },
 	
+	/*
+	if(this.state.clicked)
+	{
+	  //console.log('click');
+	  elementModal = <Modal element={this.props.element}></Modal>
+	}
+	
+	*/
+	
 	  render: function() {
+	
+	    var modules = [], key = 0;
+	
+	    modules.push(React.createElement(Navbar, {key: key++}));
+	    modules.push(React.createElement(PeriodicTable, {key: key++, elements: this.state.data}));
+	
+	    if(this.state.displayElement != null)
+	    {
+	      modules.push(React.createElement(Modal, {key: key++, element: this.state.displayElement}));
+	    }
 	
 	    var cell = this.state.length < 1
 	      ? null
 	      : (
 	        React.createElement("span", null, 
-	          React.createElement(Navbar, null), 
-	          React.createElement(PeriodicTable, {elements: this.state.data})
-	
+	          modules
 	        )
 	      );
 	
@@ -19933,10 +19956,20 @@
 	  },
 	
 	  componentDidMount: function() {
-	    ajax.get('/app/data/elements.json', function(data) {
+	    this.uniqueId = gs.register(this, ['page']);
+	
+	    ajax.get('/elements.csv', function(csv) {
+	      var data = csvToJson.CSV2OBJ(csv);
+	      //console.log(data);
 	      this.setState({data: data, length: data.length});
-	    }.bind(this), 3);
+	    }.bind(this),3);
+	
+	  },
+	
+	  componentWillUnmount: function(){
+	    gs.unregister(this.uniqueId);
 	  }
+	
 	});
 
 
@@ -19944,12 +19977,13 @@
 /* 162 */
 /***/ function(module, exports, __webpack_require__) {
 
-	/** @jsx React.DOM */var Element = __webpack_require__(163);
-	var transitions = __webpack_require__(164);
-	var React = __webpack_require__(1);
+	/** @jsx React.DOM */var React = __webpack_require__(1);
+	var Element = __webpack_require__(163);
+	
+	var transitions = __webpack_require__(168);
 	var gs = __webpack_require__(159);
 	
-	var color = __webpack_require__(172);
+	var color = __webpack_require__(176);
 	
 	module.exports = React.createClass({displayName: "module.exports",
 	
@@ -19976,22 +20010,25 @@
 	
 			var key = 0;
 			elements.forEach(function(element){
-				key++;
-				cells.push(React.createElement(Element, {test: Math.random(), 
-				element: element.Symbol, 
-				key: key, 
-				number: element.AtomicNumber, 
-				mass: element.Atomic_Weight, 
-				period: element.Period, 
-				group: element.Group, 
-				hexColor: color.getColor(element,config)}
-				));
+	
+				// Make sure it is a valid element, all emenets must have names this also eliminates csv dups
+				if(element.Name != "")
+				{
+						key++;
+						cells.push(React.createElement(Element, {test: Math.random(), 
+						key: key, 
+						element: element, 
+						hexColor: color.getColor(element,config)}
+					));
+			}
 	
 		});
 	
-		return transitions.fadeIn(React.createElement("div", {onClick: function(){
+		return transitions.fadeIn(React.createElement("span", null, React.createElement("div", {onClick: function(){
 			this.setState({bah: true})
-		}.bind(this)}, cells));
+		}.bind(this)}, cells)
+	
+	));
 	
 	
 	/*
@@ -20046,14 +20083,25 @@
 
 	/** @jsx React.DOM */var React = __webpack_require__(1);
 	var gs = __webpack_require__(159);
+	var Modal = __webpack_require__(164);
+	
+	var element = {};
 	
 	module.exports = React.createClass({displayName: "module.exports",
 	
-	  getInitialState: function(){
-	    return {clicked: false};
-	  },
-	
 	  render: function() {
+	
+	  element = {
+	      number: this.props.element.AtomicNumber,
+	      mass: this.props.element.Atomic_Weight,
+	      period: this.props.element.Period,
+	      group: this.props.element.Group,
+	      element: this.props.element.Symbol
+	    };
+	
+	    var originalElement = this.props.element;
+	
+	    //console.log(this.props.element);
 	
 	    var btnClass = "btn btn-default";
 	    var hexColor = this.props.hexColor || "#fff";
@@ -20071,38 +20119,43 @@
 	    var text = hexColor > 125 ? 50 : 210;
 	
 	    // This controls the responsiveness of the elements/table
-	    if(width >= 1800 && !this.state.iconView)
-	    {
-	      btnStyle = this.extendedTable(2.7,6.5);
-	      var rounded = Math.round(this.props.mass*100)/100;
-	      mass = !isNaN(rounded) ? rounded : '-';
-	    }
-	    else if(width >= 1200 && !this.state.iconView)
-	    {
-	      btnStyle = this.standardTable(4.5,6.5);
-	      var rounded = Math.round(this.props.mass*100)/100;
-	      mass = !isNaN(rounded) ? rounded : '-';
-	    }
-	    else if(width >= 768 && !this.state.iconView) {
-	      btnStyle = this.standardTable(4.5,5);
-	    }
-	    else {
+	    if(this.state && this.state.iconView) {
 	      btnStyle.width = "50";
 	      btnStyle.height = "50";
 	      btnStyle.position = "relative";
 	      btnStyle.margin = "3";
 	
 	    }
+	    else if(width >= 1800)
+	    {
+	      //console.log(1800);
+	      btnStyle = this.extendedTable(2.7,6.5);
+	      var rounded = Math.round(element.mass*100)/100;
+	      mass = !isNaN(rounded) ? rounded : '-';
+	    }
+	    else if(width >= 1200)
+	    {
+	      btnStyle = this.standardTable(4.5,6.5);
+	      var rounded = Math.round(element.mass*100)/100;
+	      mass = !isNaN(rounded) ? rounded : '-';
+	    }
+	    else if(width >= 768) {
+	      btnStyle = this.standardTable(4.5,5);
+	    }
+	
 	
 	    btnStyle.backgroundColor = 'rgb(' + hexColor + ',' + hexColor + ',' + hexColor + ')';
 	    btnStyle.color = 'rgb(' + text + ',' + text + ',' + text + ')';
 	
-	    return (React.createElement("button", {style: btnStyle, type: "button", onClick: this.processElement, className: btnClass}, 
+	    var elementModal = "";
+	
+	
+	    return (React.createElement("button", {style: btnStyle, type: "button", onClick: processElement.bind(originalElement), className: btnClass}, 
 	      React.createElement("div", {className: "element-table-number"}, 
-	        this.props.number
+	        element.number
 	      ), 
 	      React.createElement("div", {className: "element-table-symbol"}, 
-	        React.createElement("b", null, this.props.element)
+	        React.createElement("b", null, element.element)
 	      ), 
 	      React.createElement("div", {className: "element-table-mass"}, 
 	        mass
@@ -20111,31 +20164,28 @@
 	
 	  },
 	
-	  processElement: function()
-	  {
-	    this.setState({clicked: true});
-	  },
 	
 	  extendedTable: function(width,height)
 	  {
 	    var left;
 	
-	    var widthSpace = width*1.1;
-	    var heightSpace = height*1.1;
+	    var widthSpace = Math.ceil(width*1.1);
+	    var heightSpace = Math.ceil(height*1.1);
 	
-	    var group = this.props.group;
-	    var number = this.props.number;
-	    var period = this.props.period;
+	    var group = element.group;
+	    var number = Number(element.number);
+	    var period = element.period;
 	
 	    if(group != "null")
 	      {
 	        if(group > 2)
 	        {
-	          group += 14;
+	          group = Number(group) + 14;
 	        }
-	        left = Number(group*widthSpace) + '%';
+	        left = Number(Number(group)*widthSpace) + '%';
 	      }
 	      else {
+	
 	        if(number < 89)
 	        {
 	          left = Number((3+(number-57))*widthSpace) + '%';
@@ -20163,9 +20213,9 @@
 	    var widthSpace = Math.ceil(width*1.1);
 	    var heightSpace = Math.ceil(height*1.1);
 	
-	    var group = this.props.group;
-	    var number = this.props.number;
-	    var period = this.props.period;
+	    var group = element.group;
+	    var number = element.number;
+	    var period = element.period;
 	
 	    if(group != "null")
 	      {
@@ -20175,11 +20225,11 @@
 	        if(number < 89)
 	        {
 	          left = Number((3+(number-57))*widthSpace) + '%';
-	          period += 2.5;
+	          period = Number(period) + 2.5;
 	        }
 	        else {
 	          left = Number((3+(number-89))*widthSpace) + '%';
-	          period += 2.5;
+	          period = Number(period) + 2.5;
 	        }
 	      }
 	      var top = Number(period*heightSpace + 6) + '%';
@@ -20202,15 +20252,166 @@
 	  	}
 	
 	});
+	
+	function processElement()
+	{
+	  var page = gs.getTopMember('page');
+	  page.state.displayElement = this;
+	  page.reference.setState(page.state);
+	}
 
 
 /***/ },
 /* 164 */
 /***/ function(module, exports, __webpack_require__) {
 
+	/** @jsx React.DOM */var React = __webpack_require__(1);
+	var ModalElement = __webpack_require__(165);
+	var ModalVideos = __webpack_require__(166);
+	var Links = __webpack_require__(167);
+	var gs = __webpack_require__(159);
+	
+	module.exports = React.createClass({displayName: "module.exports",
+	
+	  getInitialState: function(){
+	    return {hide: false};
+	  },
+	
+	  close: function() {
+	    var page = gs.getTopMember('page');
+	    page.state.displayElement = null;
+	    page.reference.setState(page.state);
+	  },
+	
+	  render: function() {
+	    //console.log('render');
+	    //console.log(this.state.hide);
+	    var element = this.props.element;
+	    console.log(element);
+	    var title = 'Element: ' + element.Name;
+	
+	    if (this.state && this.state.hide)
+	    {return (React.createElement("span", null));}
+	    else {return (
+	        React.createElement("div", {className: "modalOverlay"}, 
+	          React.createElement("div", {className: "modalContainer"}, 
+	            React.createElement("div", {className: "modalContent"}, 
+	              React.createElement("h3", null, React.createElement("button", {onClick: this.close}, "X"), title), 
+	              React.createElement(ModalElement, {element: element}), 
+	              React.createElement(Links, {element: element}), 
+	              React.createElement(ModalVideos, {element: element})
+	            )
+	          )
+	        )
+	      );}
+	  }
+	});
+
+
+/***/ },
+/* 165 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/** @jsx React.DOM */var React = __webpack_require__(1);
+	
+	module.exports = React.createClass({displayName: "module.exports",
+	
+	  render: function(){
+	    var element = this.props.element;
+	    var table = [];
+	
+	    var index = 0;
+	    for(var property in element)
+	    {
+	      index++;
+	      table.push(React.createElement("tr", {key: index}, React.createElement("td", null, property), React.createElement("td", null, element[property])));
+	    }
+	
+	    return React.createElement("div", {className: "col-md-4"}, React.createElement("table", null, React.createElement("tbody", null, table)));
+	  }
+	
+	});
+
+
+/***/ },
+/* 166 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/** @jsx React.DOM */var React = __webpack_require__(1);
+	
+	module.exports = React.createClass({displayName: "module.exports",
+	  render: function(){
+	    var element = this.props.element;
+	    //["Periodic Video 1"]
+	
+	    //return (<iframe width="560" height="315" src={element["Periodic Video 1"]} frameborder="0"></iframe>);
+	    var videos = element.PeriodicVideos.split(',');
+	    var videoTags = [];
+	
+	    videos.forEach(function(video){
+	      var videoSrc = "https://www.youtube.com/embed/" + video + "?list=PL7A1F4CF36C085DE1";
+	      videoTags.push(React.createElement("iframe", {width: "560", height: "315", src: videoSrc, frameborder: "0", allowfullscreen: true}));
+	    });
+	
+	    return (React.createElement("div", {className: "col-md-6"}, React.createElement("h1", null, "Periodic Videos:"), videoTags));
+	    //return (<span></span>);
+	  }
+	});
+
+
+/***/ },
+/* 167 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/** @jsx React.DOM */var React = __webpack_require__(1);
+	
+	module.exports = React.createClass({displayName: "module.exports",
+	
+	render: function(){
+	    var element = this.props.element;
+	
+	    var cells = [];
+	
+	    // Wiki
+	    cells.push(getCell(
+	      "Wikipedia",
+	      "The popular internet encyclopedia.",
+	      "https://en.wikipedia.org/wiki/" + element.Name,
+	      element.Name));
+	
+	    // Theodore Gray
+	    var grayLink = "http://theodoregray.com/periodictable/Elements/" + pad(element.AtomicNumber,3) + "/index.s7.html";
+	    cells.push(getCell(
+	      "Theodore Gray",
+	      "Theodore Gray is a well known element collector who created the popular book The Elements.  He has a webpage for nearly every element on this table where he shows off samples or associated materials.",
+	      grayLink,
+	      element.Name));
+	
+	    return(React.createElement("div", {className: "col-md-6"}, cells))
+	  }
+	});
+	
+	function getCell(title,description,link,element)
+	{
+	  title += " (" + element + ")";
+	  return (React.createElement("div", null, React.createElement("a", {target: "_blank", href: link}, React.createElement("h3", null, title)), description));
+	}
+	
+	// taken from http://stackoverflow.com/questions/2998784/how-to-output-integers-with-leading-zeros-in-javascript
+	function pad(num, size) {
+	    var s = num+"";
+	    while (s.length < size) s = "0" + s;
+	    return s;
+	}
+
+
+/***/ },
+/* 168 */
+/***/ function(module, exports, __webpack_require__) {
+
 	/** @jsx React.DOM */// All transitions are stored here using ReactCSSTransitionGroup Addon, CSS is elsewhere
 	var React = __webpack_require__(1);
-	var ReactCSSTransitionGroup = __webpack_require__(165);
+	var ReactCSSTransitionGroup = __webpack_require__(169);
 	
 	module.exports = {
 		fadeIn: function(innerElement){
@@ -20241,13 +20442,13 @@
 
 
 /***/ },
-/* 165 */
+/* 169 */
 /***/ function(module, exports, __webpack_require__) {
 
-	module.exports = __webpack_require__(166);
+	module.exports = __webpack_require__(170);
 
 /***/ },
-/* 166 */
+/* 170 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/**
@@ -20268,8 +20469,8 @@
 	
 	var assign = __webpack_require__(39);
 	
-	var ReactTransitionGroup = __webpack_require__(167);
-	var ReactCSSTransitionGroupChild = __webpack_require__(169);
+	var ReactTransitionGroup = __webpack_require__(171);
+	var ReactCSSTransitionGroupChild = __webpack_require__(173);
 	
 	function createTransitionTimeoutPropValidator(transitionType) {
 	  var timeoutPropName = 'transition' + transitionType + 'Timeout';
@@ -20335,7 +20536,7 @@
 	module.exports = ReactCSSTransitionGroup;
 
 /***/ },
-/* 167 */
+/* 171 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/**
@@ -20352,7 +20553,7 @@
 	'use strict';
 	
 	var React = __webpack_require__(2);
-	var ReactTransitionChildMapping = __webpack_require__(168);
+	var ReactTransitionChildMapping = __webpack_require__(172);
 	
 	var assign = __webpack_require__(39);
 	var emptyFunction = __webpack_require__(15);
@@ -20545,7 +20746,7 @@
 	module.exports = ReactTransitionGroup;
 
 /***/ },
-/* 168 */
+/* 172 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/**
@@ -20648,7 +20849,7 @@
 	module.exports = ReactTransitionChildMapping;
 
 /***/ },
-/* 169 */
+/* 173 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/**
@@ -20668,8 +20869,8 @@
 	var React = __webpack_require__(2);
 	var ReactDOM = __webpack_require__(3);
 	
-	var CSSCore = __webpack_require__(170);
-	var ReactTransitionEvents = __webpack_require__(171);
+	var CSSCore = __webpack_require__(174);
+	var ReactTransitionEvents = __webpack_require__(175);
 	
 	var onlyChild = __webpack_require__(156);
 	
@@ -20813,7 +21014,7 @@
 	module.exports = ReactCSSTransitionGroupChild;
 
 /***/ },
-/* 170 */
+/* 174 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {/**
@@ -20916,7 +21117,7 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(4)))
 
 /***/ },
-/* 171 */
+/* 175 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/**
@@ -21030,12 +21231,12 @@
 	module.exports = ReactTransitionEvents;
 
 /***/ },
-/* 172 */
+/* 176 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var gs = __webpack_require__(159);
 	var hf = __webpack_require__(160);
-	var status = __webpack_require__(173);
+	var status = __webpack_require__(177);
 	
 	module.exports = {
 	
@@ -21155,7 +21356,7 @@
 
 
 /***/ },
-/* 173 */
+/* 177 */
 /***/ function(module, exports) {
 
 	module.exports = {
@@ -21164,14 +21365,14 @@
 
 
 /***/ },
-/* 174 */
+/* 178 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/** @jsx React.DOM */
 	var React = __webpack_require__(1);
-	var Button = __webpack_require__(175);
+	var Button = __webpack_require__(179);
 	var gs = __webpack_require__(159);
-	var NavbarBottom = __webpack_require__(176);
+	var NavbarBottom = __webpack_require__(180);
 	var hf= __webpack_require__(160);
 	
 	module.exports = React.createClass({displayName: "module.exports",
@@ -21215,7 +21416,7 @@
 
 
 /***/ },
-/* 175 */
+/* 179 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/** @jsx React.DOM */var React = __webpack_require__(1);
@@ -21272,16 +21473,16 @@
 
 
 /***/ },
-/* 176 */
+/* 180 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/** @jsx React.DOM */var React = __webpack_require__(1);
-	var Button = __webpack_require__(175);
+	var Button = __webpack_require__(179);
 	var gs = __webpack_require__(159);
-	var transitions = __webpack_require__(164);
+	var transitions = __webpack_require__(168);
 	var hf = __webpack_require__(160);
 	
-	var color = __webpack_require__(172);
+	var color = __webpack_require__(176);
 	
 	module.exports = React.createClass({displayName: "module.exports",
 	
@@ -21392,10 +21593,10 @@
 
 
 /***/ },
-/* 177 */
+/* 181 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var $ = __webpack_require__(178);
+	var $ = __webpack_require__(182);
 	
 	module.exports = {
 		get: function (url,callback,num) {
@@ -21416,7 +21617,7 @@
 	}
 
 /***/ },
-/* 178 */
+/* 182 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;/*!
@@ -30629,6 +30830,89 @@
 	return jQuery;
 	
 	}));
+
+
+/***/ },
+/* 183 */
+/***/ function(module, exports) {
+
+	module.exports = {
+	
+	CSVToArray: function(strData, strDelimiter) {
+	    // Check to see if the delimiter is defined. If not,
+	    // then default to comma.
+	    strDelimiter = (strDelimiter || ",");
+	    // Create a regular expression to parse the CSV values.
+	    var objPattern = new RegExp((
+	    // Delimiters.
+	    "(\\" + strDelimiter + "|\\r?\\n|\\r|^)" +
+	    // Quoted fields.
+	    "(?:\"([^\"]*(?:\"\"[^\"]*)*)\"|" +
+	    // Standard fields.
+	    "([^\"\\" + strDelimiter + "\\r\\n]*))"), "gi");
+	    // Create an array to hold our data. Give the array
+	    // a default empty first row.
+	    var arrData = [[]];
+	    // Create an array to hold our individual pattern
+	    // matching groups.
+	    var arrMatches = null;
+	    // Keep looping over the regular expression matches
+	    // until we can no longer find a match.
+	    while (arrMatches = objPattern.exec(strData)) {
+	        // Get the delimiter that was found.
+	        var strMatchedDelimiter = arrMatches[1];
+	        // Check to see if the given delimiter has a length
+	        // (is not the start of string) and if it matches
+	        // field delimiter. If id does not, then we know
+	        // that this delimiter is a row delimiter.
+	        if (strMatchedDelimiter.length && (strMatchedDelimiter != strDelimiter)) {
+	            // Since we have reached a new row of data,
+	            // add an empty row to our data array.
+	            arrData.push([]);
+	        }
+	        // Now that we have our delimiter out of the way,
+	        // let's check to see which kind of value we
+	        // captured (quoted or unquoted).
+	        if (arrMatches[2]) {
+	            // We found a quoted value. When we capture
+	            // this value, unescape any double quotes.
+	            var strMatchedValue = arrMatches[2].replace(
+	            new RegExp("\"\"", "g"), "\"");
+	        } else {
+	            // We found a non-quoted value.
+	            var strMatchedValue = arrMatches[3];
+	        }
+	        // Now that we have our value string, let's add
+	        // it to the data array.
+	        arrData[arrData.length - 1].push(strMatchedValue);
+	    }
+	    // Return the parsed data.
+	    return (arrData);
+	},
+	
+	CSV2OBJ: function(csv){
+	  var array = this.CSVToArray(csv);
+	  var objArray = [];
+	  for (var i = 1; i < array.length; i++) {
+	      objArray[i - 1] = {};
+	      for (var k = 0; k < array[0].length && k < array[i].length; k++) {
+	          var key = array[0][k];
+	          objArray[i - 1][key] = array[i][k]
+	      }
+	  }
+	
+	  return objArray;
+	},
+	
+	CSV2JSON: function(csv) {
+	    var objArray = this.CSV2OBJS
+	    var json = JSON.stringify(objArray);
+	    var str = json.replace(/},/g, "},\r\n");
+	
+	    return str;
+	}
+	
+	};
 
 
 /***/ }

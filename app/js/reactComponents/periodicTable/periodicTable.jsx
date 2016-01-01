@@ -1,6 +1,7 @@
-var Element = require('./element.jsx');
-var transitions = require('./../general/transitions.jsx');
 var React = require('react');
+var Element = require('./element.jsx');
+
+var transitions = require('./../general/transitions.jsx');
 var gs = require('./../globalState.js');
 
 var color = require('./actions/color.js');
@@ -30,22 +31,25 @@ module.exports = React.createClass({
 
 		var key = 0;
 		elements.forEach(function(element){
-			key++;
-			cells.push(<Element test={Math.random()}
-			element={element.Symbol}
-			key={key}
-			number={element.AtomicNumber}
-			mass={element.Atomic_Weight}
-			period={element.Period}
-			group={element.Group}
-			hexColor={color.getColor(element,config)}
-			/>);
+
+			// Make sure it is a valid element, all emenets must have names this also eliminates csv dups
+			if(element.Name != "")
+			{
+					key++;
+					cells.push(<Element test={Math.random()}
+					key={key}
+					element={element}
+					hexColor={color.getColor(element,config)}
+				/>);
+		}
 
 	});
 
-	return transitions.fadeIn(<div onClick={function(){
+	return transitions.fadeIn(<span><div onClick={function(){
 		this.setState({bah: true})
-	}.bind(this)}>{cells}</div>);
+	}.bind(this)}>{cells}</div>
+
+</span>);
 
 
 /*

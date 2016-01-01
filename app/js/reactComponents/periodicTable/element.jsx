@@ -1,13 +1,24 @@
 var React = require('react');
 var gs = require('./../globalState.js');
+var Modal = require('./../modals/modal.jsx');
+
+var element = {};
 
 module.exports = React.createClass({
 
-  getInitialState: function(){
-    return {clicked: false};
-  },
-
   render: function() {
+
+  element = {
+      number: this.props.element.AtomicNumber,
+      mass: this.props.element.Atomic_Weight,
+      period: this.props.element.Period,
+      group: this.props.element.Group,
+      element: this.props.element.Symbol
+    };
+
+    var originalElement = this.props.element;
+
+    //console.log(this.props.element);
 
     var btnClass = "btn btn-default";
     var hexColor = this.props.hexColor || "#fff";
@@ -25,38 +36,43 @@ module.exports = React.createClass({
     var text = hexColor > 125 ? 50 : 210;
 
     // This controls the responsiveness of the elements/table
-    if(width >= 1800 && !this.state.iconView)
-    {
-      btnStyle = this.extendedTable(2.7,6.5);
-      var rounded = Math.round(this.props.mass*100)/100;
-      mass = !isNaN(rounded) ? rounded : '-';
-    }
-    else if(width >= 1200 && !this.state.iconView)
-    {
-      btnStyle = this.standardTable(4.5,6.5);
-      var rounded = Math.round(this.props.mass*100)/100;
-      mass = !isNaN(rounded) ? rounded : '-';
-    }
-    else if(width >= 768 && !this.state.iconView) {
-      btnStyle = this.standardTable(4.5,5);
-    }
-    else {
+    if(this.state && this.state.iconView) {
       btnStyle.width = "50";
       btnStyle.height = "50";
       btnStyle.position = "relative";
       btnStyle.margin = "3";
 
     }
+    else if(width >= 1800)
+    {
+      //console.log(1800);
+      btnStyle = this.extendedTable(2.7,6.5);
+      var rounded = Math.round(element.mass*100)/100;
+      mass = !isNaN(rounded) ? rounded : '-';
+    }
+    else if(width >= 1200)
+    {
+      btnStyle = this.standardTable(4.5,6.5);
+      var rounded = Math.round(element.mass*100)/100;
+      mass = !isNaN(rounded) ? rounded : '-';
+    }
+    else if(width >= 768) {
+      btnStyle = this.standardTable(4.5,5);
+    }
+
 
     btnStyle.backgroundColor = 'rgb(' + hexColor + ',' + hexColor + ',' + hexColor + ')';
     btnStyle.color = 'rgb(' + text + ',' + text + ',' + text + ')';
 
-    return (<button style={btnStyle} type="button" onClick={this.processElement} className={btnClass}>
+    var elementModal = "";
+
+
+    return (<button style={btnStyle} type="button" onClick={processElement.bind(originalElement)} className={btnClass}>
       <div className="element-table-number">
-        {this.props.number}
+        {element.number}
       </div>
       <div className="element-table-symbol">
-        <b>{this.props.element}</b>
+        <b>{element.element}</b>
       </div>
       <div className="element-table-mass">
         {mass}
@@ -65,31 +81,28 @@ module.exports = React.createClass({
 
   },
 
-  processElement: function()
-  {
-    this.setState({clicked: true});
-  },
 
   extendedTable: function(width,height)
   {
     var left;
 
-    var widthSpace = width*1.1;
-    var heightSpace = height*1.1;
+    var widthSpace = Math.ceil(width*1.1);
+    var heightSpace = Math.ceil(height*1.1);
 
-    var group = this.props.group;
-    var number = this.props.number;
-    var period = this.props.period;
+    var group = element.group;
+    var number = Number(element.number);
+    var period = element.period;
 
     if(group != "null")
       {
         if(group > 2)
         {
-          group += 14;
+          group = Number(group) + 14;
         }
-        left = Number(group*widthSpace) + '%';
+        left = Number(Number(group)*widthSpace) + '%';
       }
       else {
+
         if(number < 89)
         {
           left = Number((3+(number-57))*widthSpace) + '%';
@@ -117,9 +130,9 @@ module.exports = React.createClass({
     var widthSpace = Math.ceil(width*1.1);
     var heightSpace = Math.ceil(height*1.1);
 
-    var group = this.props.group;
-    var number = this.props.number;
-    var period = this.props.period;
+    var group = element.group;
+    var number = element.number;
+    var period = element.period;
 
     if(group != "null")
       {
@@ -129,11 +142,11 @@ module.exports = React.createClass({
         if(number < 89)
         {
           left = Number((3+(number-57))*widthSpace) + '%';
-          period += 2.5;
+          period = Number(period) + 2.5;
         }
         else {
           left = Number((3+(number-89))*widthSpace) + '%';
-          period += 2.5;
+          period = Number(period) + 2.5;
         }
       }
       var top = Number(period*heightSpace + 6) + '%';
@@ -156,3 +169,10 @@ module.exports = React.createClass({
   	}
 
 });
+
+function processElement()
+{
+  var page = gs.getTopMember('page');
+  page.state.displayElement = this;
+  page.reference.setState(page.state);
+}
