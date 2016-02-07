@@ -11,7 +11,7 @@ module.exports = React.createClass({
 
     videos.forEach(function(video){
       var videoSrc = "https://www.youtube.com/embed/" + video + "?list=PL7A1F4CF36C085DE1";
-      videoTags.push(<iframe width="560" height="315" src={videoSrc} frameborder="0" allowfullscreen></iframe>);
+      videoTags.push(<iframe className="video" src={videoSrc} frameborder="0" allowfullscreen></iframe>);
     });
 
     return (<div className="col-md-6"><h1>Periodic Videos:</h1>{videoTags}</div>);

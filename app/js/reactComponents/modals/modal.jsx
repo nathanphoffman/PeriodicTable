@@ -10,10 +10,15 @@ module.exports = React.createClass({
     return {hide: false};
   },
 
-  close: function() {
-    var page = gs.getTopMember('page');
-    page.state.displayElement = null;
-    page.reference.setState(page.state);
+  close: function(e) {
+
+    if(e.target.className == 'btnClose' || e.target.className == 'modalOverlay')
+    {
+
+      var page = gs.getTopMember('page');
+      page.state.displayElement = null;
+      page.reference.setState(page.state);
+    }
   },
 
   render: function() {
@@ -26,10 +31,10 @@ module.exports = React.createClass({
     if (this.state && this.state.hide)
     {return (<span></span>);}
     else {return (
-        <div className="modalOverlay">
+        <div className="modalOverlay" onClick={this.close}>
           <div className="modalContainer">
             <div className="modalContent">
-              <h3><button onClick={this.close}>X</button>{title}</h3>
+              <h3><button className = 'btnClose' onClick={this.close}>X</button>{title}</h3>
               <ModalElement element={element}></ModalElement>
               <Links element={element}></Links>
               <ModalVideos element={element}></ModalVideos>

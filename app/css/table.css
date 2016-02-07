@@ -1,6 +1,7 @@
 
 body {
 background-color: #fafafa;
+height: 100%;
 }
 
 .transition-fadeIn-appear {
@@ -216,4 +217,11 @@ a.btnAction:visited
 
 .modalModule {
   float: left;
+}
+
+.video
+{
+  max-width: 560px;
+  height: 315px;
+  width: 100%;
 }
