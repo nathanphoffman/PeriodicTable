@@ -194,7 +194,11 @@ a.btnAction:visited
   right:0;
   background-color: rgba(0,0,0,0.5);
   z-index: 9999;
-  /*overflow:hidden;*/
+
+  /* Scroll is required or else our embedded content within the overlay cant be
+      be seen (with hidden) or the overlay background based on absolute positioning is cut off.
+  */
+  overflow: scroll;
 }
 
 .modalContainer{

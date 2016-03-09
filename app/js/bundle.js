@@ -49,36 +49,32 @@
 	//try{
 	    var React = __webpack_require__(1);
 	    var ReactDOM = __webpack_require__(158);
-	    var gs = __webpack_require__(159);
-	    var hf = __webpack_require__(160);
+	    var Page = __webpack_require__(159);
+	    var listeners = __webpack_require__(185);
 	
-	    var Page = __webpack_require__(161);
+	    var data = __webpack_require__(183);
 	
-	    ReactDOM.render(
-	      React.createElement(Page, null),
+	    // Initial Render
+	    var renderedComponent = ReactDOM.render(
+	      React.createElement(Page, {route: "default"}),
 	      document.getElementById('reactJS')
 	    );
 	
-	    var debounceResize = hf.debounce(resize,25,false);
+	    routie({
+	      'table': function(){
+	         renderedComponent.setState({route: "table"});
+	      },
+	      'element/:symbol': function(symbol){
+	        data.getElement(symbol, function(element){
+	          renderedComponent.setState({route: "element", element:element});
+	        }.bind(this));
+	      },
+	      '*': function(){
+	        renderedComponent.setState({route: "default"});
+	      }
+	    });
 	
-	    function resize()
-	    {
-	      gs.eachComponent({group: 'resize'},
-	  		function(component) {
-	        component.reference.setState({resize: true});
-	      });
-	    }
-	    // On window resize we need to redo responsive-elements
-	    window.onresize = debounceResize;
-	
-	
-	/*
-	}
-	catch(e)
-	{
-	    console.log(e);
-	}
-	*/
+	    listeners.initialize();
 
 
 /***/ },
@@ -19684,252 +19680,18 @@
 
 /***/ },
 /* 159 */
-/***/ function(module, exports) {
-
-	module.exports = {
-	
-	  register: function(component, groups, state) {
-	
-	    state = state || {};
-	    groups = groups || [];
-	
-	    var uniqueId = _uniqueId++;
-	    _components[uniqueId] = {
-	      uniqueId: uniqueId,
-	      reference: component,
-	      state: state,
-	      groups: groups
-	    };
-	
-	    return uniqueId;
-	  },
-	
-	  unregister: function(uniqueId) {
-	    _components.forEach(function(component, index) {
-	      if (component.uniqueId === uniqueId) {
-	        component.splice(index, 1);
-	        return;
-	      }
-	    });
-	  },
-	
-	  getState: function(uniqueId) {
-	    var component = getComponent(uniqueId);
-	    return component.state;
-	  },
-	
-	  setState: function(uniqueId, state) {
-	    _components[uniqueId].state = state;
-	  },
-	
-	  eachComponent: function(config, func) {
-	
-	    var targetGroup = config.group;
-	    var ignoreId = config.ignoreId || -1;
-	
-	    _components.forEach(function(component) {
-	      component.groups.forEach(function(group) {
-	        if (group == targetGroup && ignoreId != component.uniqueId) {
-	          func(component);
-	        }
-	      });
-	    });
-	  },
-	
-	  getTopMember: function(targetGroup)
-	  {
-	    var comp = null;
-	
-	    _components.forEach(function(component) {
-	      component.groups.forEach(function(group) {
-	        if (group == targetGroup) {
-	          comp = component;
-	        }
-	      });
-	    });
-	
-	    return comp;
-	  }
-	
-	/*
-	  setTopMemberState: function(targetGroup,state)
-	  {
-	    var member = this.
-	  }
-	  */
-	
-	  //
-	}
-	
-	function getComponent(uniqueId) {
-	  return _components[uniqueId];
-	}
-	
-	var _uniqueId = 0;
-	var _components = [];
-
-
-/***/ },
-/* 160 */
-/***/ function(module, exports, __webpack_require__) {
-
-	var React = __webpack_require__(1);
-	
-	module.exports = {
-	  containsProperty: function(arr, prop, value) {
-	    if (!value) {
-	      value = null;
-	    }
-	
-	    var result = {
-	      arr: [],
-	      max: 0
-	    };
-	
-			var last = null;
-	
-	    arr.forEach(function(e) {
-	
-				// This gets max/min values in the array, needs rewrite
-	      if (e[prop] === value) {
-	        result.arr.push(e);
-	        result.max = e[prop] > result.max
-	          ? e[prop]
-	          : result.max;
-	      }
-	
-	      if (!result.absMax && e[prop]) {
-	        result.absMax = e[prop];
-	      }
-	
-	      if (!result.absMin && e[prop]) {
-	        result.absMin = e[prop];
-	      }
-	
-	      result.absMax = e[prop] > result.absMax
-	        ? e[prop]
-	        : result.absMax;
-	      result.absMin = e[prop] < result.absMin
-	        ? e[prop]
-	        : result.absMin;
-	
-	    });
-	
-	    return result;
-	  },
-	
-	  debounce: function(func, wait, immediate) {
-	    var timeout;
-	    return function() {
-	      var context = this,
-	        args = arguments;
-	      var later = function() {
-	        timeout = null;
-	        if (!immediate)
-	          func.apply(context, args);
-	        };
-	      var callNow = immediate && !timeout;
-	      clearTimeout(timeout);
-	      timeout = setTimeout(later, wait);
-	      if (callNow)
-	        func.apply(context, args);
-	      };
-	  },
-	
-	  btnHandler: function(handler, component) {
-	    var type = handler.target.parentElement.id;
-	
-	    if (handler.target.id != "") {component.setState({type: handler.target.id});} else if (type !== undefined && type != "") {component.setState({type: type});}
-	  },
-	
-	  getIndexByAttr: function(array, attr, value) {
-	    var index = -1;
-	
-	    for (var i = 0; i < array.length; i++) {
-	      if (array[i][attr] === value) {return i;}
-	    }
-	
-	    return -1;
-	  },
-	
-	  removeFromArray: function(array, attr, value) {
-	    var index = this.getIndexByAttr(array, attr, value);
-	    array.splice(index, 1);
-	    return array;
-	  },
-	
-	  sortObjectArray: function(objArray, attr) {
-	
-			var newArr = objArray;
-	
-	    function compare(a, b) {
-	      if (a[attr] < b[attr])
-	        return -1;
-	      if (a[attr] > b[attr])
-	        return 1;
-	      return 0;
-	    }
-	
-	    return newArr.sort(compare);
-	  },
-	
-		getRankingInArray: function(arr,prop,value)
-		{
-	
-			if(isNaN(value))
-			{
-				return NaN;
-			}
-	
-				var ranking = 0;
-				var last = null;
-	
-				arr.forEach(function(e) {
-					// get ranking by comparing last value to current
-					if(last === null) { last = e[prop] };
-	
-					if(value > last)
-					{
-						ranking++;
-					}
-	
-					last = e[prop];
-				});
-	
-				return ranking;
-		},
-	
-		getValidArrayLength: function(elements,prop){
-			var length = 1;
-			elements.forEach(function(element){
-				if(!isNaN(element[prop]))
-				{
-					length++;
-				}
-			});
-	
-			return length;
-		}
-	
-	}
-
-
-/***/ },
-/* 161 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/** @jsx React.DOM */var React = __webpack_require__(1);
 	
-	var PeriodicTable = __webpack_require__(162);
+	var PeriodicTable = __webpack_require__(160);
 	var Navbar = __webpack_require__(178);
-	var Modal = __webpack_require__(164);
+	var Modal = __webpack_require__(163);
 	
 	var ajax = __webpack_require__(181);
-	var csvToJson = __webpack_require__(183);
-	var gs = __webpack_require__(159);
+	var gs = __webpack_require__(162);
 	
-	//var N = require("./registry.js").getComponent('navbar');
-	//var P = require("./registry.js").getComponent('periodicTable');
+	var data = __webpack_require__(183);
 	
 	module.exports = React.createClass({displayName: "module.exports",
 	  getInitialState: function() {
@@ -19940,25 +19702,20 @@
 	    }
 	  },
 	
-	/*
-	if(this.state.clicked)
-	{
-	  //console.log('click');
-	  elementModal = <Modal element={this.props.element}></Modal>
-	}
-	
-	*/
-	
 	  render: function() {
 	
 	    var modules = [], key = 0;
 	
 	    modules.push(React.createElement(Navbar, {key: key++}));
-	    modules.push(React.createElement(PeriodicTable, {key: key++, elements: this.state.data}));
 	
-	    if(this.state.displayElement != null)
+	    if(this.state.route && this.state.route == "table")
 	    {
-	      modules.push(React.createElement(Modal, {key: key++, element: this.state.displayElement}));
+	      modules.push(React.createElement(PeriodicTable, {key: key++, elements: this.state.data}));
+	    }
+	
+	    if(this.state.route && this.state.route == "element")
+	    {
+	      modules.push(React.createElement(Modal, {key: key++, element: this.state.element}));
 	    }
 	
 	    var cell = this.state.length < 1
@@ -19975,12 +19732,9 @@
 	  componentDidMount: function() {
 	    this.uniqueId = gs.register(this, ['page']);
 	
-	    ajax.get('/elements.csv', function(csv) {
-	      var data = csvToJson.CSV2OBJ(csv);
-	      //console.log(data);
-	      this.setState({data: data, length: data.length});
-	    }.bind(this),3);
-	
+	    var elements = data.getAllElements(function(elements){
+	      this.setState({data: elements, length: elements.length});
+	    }.bind(this));
 	  },
 	
 	  componentWillUnmount: function(){
@@ -19991,16 +19745,16 @@
 
 
 /***/ },
-/* 162 */
+/* 160 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/** @jsx React.DOM */var React = __webpack_require__(1);
-	var Element = __webpack_require__(163);
+	var Element = __webpack_require__(161);
 	
-	var transitions = __webpack_require__(168);
-	var gs = __webpack_require__(159);
+	var transitions = __webpack_require__(167);
+	var gs = __webpack_require__(162);
 	
-	var color = __webpack_require__(176);
+	var color = __webpack_require__(175);
 	
 	module.exports = React.createClass({displayName: "module.exports",
 	
@@ -20095,12 +19849,12 @@
 
 
 /***/ },
-/* 163 */
+/* 161 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/** @jsx React.DOM */var React = __webpack_require__(1);
-	var gs = __webpack_require__(159);
-	var Modal = __webpack_require__(164);
+	var gs = __webpack_require__(162);
+	var Modal = __webpack_require__(163);
 	
 	var element = {};
 	
@@ -20279,59 +20033,121 @@
 
 
 /***/ },
-/* 164 */
+/* 162 */
+/***/ function(module, exports) {
+
+	module.exports = {
+	
+	  register: function(component, groups, state) {
+	
+	    state = state || {};
+	    groups = groups || [];
+	
+	    var uniqueId = _uniqueId++;
+	    _components[uniqueId] = {
+	      uniqueId: uniqueId,
+	      reference: component,
+	      state: state,
+	      groups: groups
+	    };
+	
+	    return uniqueId;
+	  },
+	
+	  unregister: function(uniqueId) {
+	    _components.forEach(function(component, index) {
+	      if (component.uniqueId === uniqueId) {
+	        component.splice(index, 1);
+	        return;
+	      }
+	    });
+	  },
+	
+	  getState: function(uniqueId) {
+	    var component = getComponent(uniqueId);
+	    return component.state;
+	  },
+	
+	  setState: function(uniqueId, state) {
+	    _components[uniqueId].state = state;
+	  },
+	
+	  eachComponent: function(config, func) {
+	
+	    var targetGroup = config.group;
+	    var ignoreId = config.ignoreId || -1;
+	
+	    _components.forEach(function(component) {
+	      component.groups.forEach(function(group) {
+	        if (group == targetGroup && ignoreId != component.uniqueId) {
+	          func(component);
+	        }
+	      });
+	    });
+	  },
+	
+	  getTopMember: function(targetGroup)
+	  {
+	    var comp = null;
+	
+	    _components.forEach(function(component) {
+	      component.groups.forEach(function(group) {
+	        if (group == targetGroup) {
+	          comp = component;
+	        }
+	      });
+	    });
+	
+	    return comp;
+	  }
+	
+	
+	}
+	
+	function getComponent(uniqueId) {
+	  return _components[uniqueId];
+	}
+	
+	var _uniqueId = 0;
+	var _components = [];
+
+
+/***/ },
+/* 163 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/** @jsx React.DOM */var React = __webpack_require__(1);
-	var ModalElement = __webpack_require__(165);
-	var ModalVideos = __webpack_require__(166);
-	var Links = __webpack_require__(167);
-	var gs = __webpack_require__(159);
+	var ModalElement = __webpack_require__(164);
+	var ModalVideos = __webpack_require__(165);
+	var Links = __webpack_require__(166);
+	var gs = __webpack_require__(162);
 	
 	module.exports = React.createClass({displayName: "module.exports",
 	
-	  getInitialState: function(){
-	    return {hide: false};
-	  },
-	
-	  close: function(e) {
-	
-	    if(e.target.className == 'btnClose' || e.target.className == 'modalOverlay')
-	    {
-	
-	      var page = gs.getTopMember('page');
-	      page.state.displayElement = null;
-	      page.reference.setState(page.state);
-	    }
-	  },
-	
 	  render: function() {
-	    //console.log('render');
-	    //console.log(this.state.hide);
-	    var element = this.props.element;
-	    console.log(element);
-	    var title = 'Element: ' + element.Name;
 	
-	    if (this.state && this.state.hide)
+	    // state will be returned when the element is loaded
+	    if (!(this.props && this.props.element))
 	    {return (React.createElement("span", null));}
-	    else {return (
-	        React.createElement("div", {className: "modalOverlay", onClick: this.close}, 
-	          React.createElement("div", {className: "modalContainer"}, 
-	            React.createElement("div", {className: "modalContent"}, 
-	              React.createElement("h3", null, React.createElement("button", {className: "btnClose", onClick: this.close}, "X"), title), 
+	    else {
+	      var element = this.props.element;
+	      var title = 'Element: ' + element.Name;
+	      return (
+	              React.createElement("div", null, 
+	              React.createElement("h3", null, title), 
 	              React.createElement(ModalElement, {element: element}), 
 	              React.createElement(Links, {element: element}), 
 	              React.createElement(ModalVideos, {element: element})
-	            )
-	          )
-	        )
-	      );}
+	              )
+	
+	      );
+	    }
 	  }
 	});
 
 
 /***/ },
-/* 165 */
+/* 164 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/** @jsx React.DOM */var React = __webpack_require__(1);
@@ -20356,7 +20172,7 @@
 
 
 /***/ },
-/* 166 */
+/* 165 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/** @jsx React.DOM */var React = __webpack_require__(1);
@@ -20382,7 +20198,7 @@
 
 
 /***/ },
-/* 167 */
+/* 166 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/** @jsx React.DOM */var React = __webpack_require__(1);
@@ -20428,12 +20244,12 @@
 
 
 /***/ },
-/* 168 */
+/* 167 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/** @jsx React.DOM */// All transitions are stored here using ReactCSSTransitionGroup Addon, CSS is elsewhere
 	var React = __webpack_require__(1);
-	var ReactCSSTransitionGroup = __webpack_require__(169);
+	var ReactCSSTransitionGroup = __webpack_require__(168);
 	
 	module.exports = {
 		fadeIn: function(innerElement){
@@ -20464,13 +20280,13 @@
 
 
 /***/ },
-/* 169 */
+/* 168 */
 /***/ function(module, exports, __webpack_require__) {
 
-	module.exports = __webpack_require__(170);
+	module.exports = __webpack_require__(169);
 
 /***/ },
-/* 170 */
+/* 169 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/**
@@ -20491,8 +20307,8 @@
 	
 	var assign = __webpack_require__(39);
 	
-	var ReactTransitionGroup = __webpack_require__(171);
-	var ReactCSSTransitionGroupChild = __webpack_require__(173);
+	var ReactTransitionGroup = __webpack_require__(170);
+	var ReactCSSTransitionGroupChild = __webpack_require__(172);
 	
 	function createTransitionTimeoutPropValidator(transitionType) {
 	  var timeoutPropName = 'transition' + transitionType + 'Timeout';
@@ -20558,7 +20374,7 @@
 	module.exports = ReactCSSTransitionGroup;
 
 /***/ },
-/* 171 */
+/* 170 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/**
@@ -20575,7 +20391,7 @@
 	'use strict';
 	
 	var React = __webpack_require__(2);
-	var ReactTransitionChildMapping = __webpack_require__(172);
+	var ReactTransitionChildMapping = __webpack_require__(171);
 	
 	var assign = __webpack_require__(39);
 	var emptyFunction = __webpack_require__(15);
@@ -20768,7 +20584,7 @@
 	module.exports = ReactTransitionGroup;
 
 /***/ },
-/* 172 */
+/* 171 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/**
@@ -20871,7 +20687,7 @@
 	module.exports = ReactTransitionChildMapping;
 
 /***/ },
-/* 173 */
+/* 172 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/**
@@ -20891,8 +20707,8 @@
 	var React = __webpack_require__(2);
 	var ReactDOM = __webpack_require__(3);
 	
-	var CSSCore = __webpack_require__(174);
-	var ReactTransitionEvents = __webpack_require__(175);
+	var CSSCore = __webpack_require__(173);
+	var ReactTransitionEvents = __webpack_require__(174);
 	
 	var onlyChild = __webpack_require__(156);
 	
@@ -21041,7 +20857,7 @@
 	module.exports = ReactCSSTransitionGroupChild;
 
 /***/ },
-/* 174 */
+/* 173 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {/**
@@ -21144,7 +20960,7 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(4)))
 
 /***/ },
-/* 175 */
+/* 174 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/**
@@ -21258,11 +21074,11 @@
 	module.exports = ReactTransitionEvents;
 
 /***/ },
-/* 176 */
+/* 175 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var gs = __webpack_require__(159);
-	var hf = __webpack_require__(160);
+	var gs = __webpack_require__(162);
+	var hf = __webpack_require__(176);
 	var status = __webpack_require__(177);
 	
 	module.exports = {
@@ -21383,6 +21199,149 @@
 
 
 /***/ },
+/* 176 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var React = __webpack_require__(1);
+	
+	module.exports = {
+	  containsProperty: function(arr, prop, value) {
+	    if (!value) {
+	      value = null;
+	    }
+	
+	    var result = {
+	      arr: [],
+	      max: 0
+	    };
+	
+			var last = null;
+	
+	    arr.forEach(function(e) {
+	
+				// This gets max/min values in the array, needs rewrite
+	      if (e[prop] === value) {
+	        result.arr.push(e);
+	        result.max = e[prop] > result.max
+	          ? e[prop]
+	          : result.max;
+	      }
+	
+	      if (!result.absMax && e[prop]) {
+	        result.absMax = e[prop];
+	      }
+	
+	      if (!result.absMin && e[prop]) {
+	        result.absMin = e[prop];
+	      }
+	
+	      result.absMax = e[prop] > result.absMax
+	        ? e[prop]
+	        : result.absMax;
+	      result.absMin = e[prop] < result.absMin
+	        ? e[prop]
+	        : result.absMin;
+	
+	    });
+	
+	    return result;
+	  },
+	
+	  debounce: function(func, wait, immediate) {
+	    console.log('debouncing');
+	  	var timeout;
+	  	return function() {
+	  		var context = this, args = arguments;
+	  		var later = function() {
+	  			timeout = null;
+	  			if (!immediate) func.apply(context, args);
+	  		};
+	  		var callNow = immediate && !timeout;
+	  		clearTimeout(timeout);
+	  		timeout = setTimeout(later, wait);
+	  		if (callNow) func.apply(context, args);
+	  	};
+	  },
+	
+	  btnHandler: function(handler, component) {
+	    var type = handler.target.parentElement.id;
+	
+	    if (handler.target.id != "") {component.setState({type: handler.target.id});} else if (type !== undefined && type != "") {component.setState({type: type});}
+	  },
+	
+	  getIndexByAttr: function(array, attr, value) {
+	    var index = -1;
+	
+	    for (var i = 0; i < array.length; i++) {
+	      if (array[i][attr] === value) {return i;}
+	    }
+	
+	    return -1;
+	  },
+	
+	  removeFromArray: function(array, attr, value) {
+	    var index = this.getIndexByAttr(array, attr, value);
+	    array.splice(index, 1);
+	    return array;
+	  },
+	
+	  sortObjectArray: function(objArray, attr) {
+	
+			var newArr = objArray;
+	
+	    function compare(a, b) {
+	      if (a[attr] < b[attr])
+	        return -1;
+	      if (a[attr] > b[attr])
+	        return 1;
+	      return 0;
+	    }
+	
+	    return newArr.sort(compare);
+	  },
+	
+		getRankingInArray: function(arr,prop,value)
+		{
+	
+			if(isNaN(value))
+			{
+				return NaN;
+			}
+	
+				var ranking = 0;
+				var last = null;
+	
+				arr.forEach(function(e) {
+					// get ranking by comparing last value to current
+					if(last === null) { last = e[prop] };
+	
+					if(value > last)
+					{
+						ranking++;
+					}
+	
+					last = e[prop];
+				});
+	
+				return ranking;
+		},
+	
+		getValidArrayLength: function(elements,prop){
+			var length = 1;
+			elements.forEach(function(element){
+				if(!isNaN(element[prop]))
+				{
+					length++;
+				}
+			});
+	
+			return length;
+		}
+	
+	}
+
+
+/***/ },
 /* 177 */
 /***/ function(module, exports) {
 
@@ -21398,9 +21357,9 @@
 	/** @jsx React.DOM */
 	var React = __webpack_require__(1);
 	var Button = __webpack_require__(179);
-	var gs = __webpack_require__(159);
+	var gs = __webpack_require__(162);
 	var NavbarBottom = __webpack_require__(180);
-	var hf= __webpack_require__(160);
+	var hf= __webpack_require__(176);
 	
 	module.exports = React.createClass({displayName: "module.exports",
 	
@@ -21447,7 +21406,7 @@
 /***/ function(module, exports, __webpack_require__) {
 
 	/** @jsx React.DOM */var React = __webpack_require__(1);
-	var gs = __webpack_require__(159);
+	var gs = __webpack_require__(162);
 	
 	module.exports = React.createClass({displayName: "module.exports",
 	
@@ -21505,11 +21464,11 @@
 
 	/** @jsx React.DOM */var React = __webpack_require__(1);
 	var Button = __webpack_require__(179);
-	var gs = __webpack_require__(159);
-	var transitions = __webpack_require__(168);
-	var hf = __webpack_require__(160);
+	var gs = __webpack_require__(162);
+	var transitions = __webpack_require__(167);
+	var hf = __webpack_require__(176);
 	
-	var color = __webpack_require__(176);
+	var color = __webpack_require__(175);
 	
 	module.exports = React.createClass({displayName: "module.exports",
 	
@@ -31482,6 +31441,46 @@
 
 /***/ },
 /* 183 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var ajax = __webpack_require__(181);
+	var csvToJson = __webpack_require__(184);
+	
+	module.exports = {
+	
+	  getAllElements: function(callback){
+	    ajax.get('/elements.csv',function(csv){
+	      var json = csvToJson.CSV2OBJ(csv);
+	      cachedElements = json;
+	      callback(json);
+	    },3);
+	  },
+	
+	  getElement: function(sym,fn){
+	    if(cachedElements === undefined || cachedElements === null){
+	      this.getAllElements(function(){
+	        this._getElement(sym,fn);
+	      }.bind(this));
+	    }
+	    else this._getElement(sym,fn);
+	  },
+	
+	  _getElement: function(sym,fn)
+	  {
+	    cachedElements.forEach(function(element){
+	      if(element.Symbol.toUpperCase() == sym.toUpperCase())
+	      {
+	        fn(element);
+	      }
+	    });
+	  }
+	}
+	
+	var cachedElements;
+
+
+/***/ },
+/* 184 */
 /***/ function(module, exports) {
 
 	module.exports = {
@@ -31561,6 +31560,37 @@
 	}
 	
 	};
+
+
+/***/ },
+/* 185 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var gs = __webpack_require__(162);
+	var hf = __webpack_require__(176);
+	
+	module.exports = {
+	
+	  initialize: function()
+	  {
+	    this.listenResize();
+	  },
+	
+	  listenResize: function()
+	  {
+	    var debounceResize = hf.debounce(resize,25,true);
+	    window.onresize = debounceResize;
+	  }
+	};
+	
+	// On window resize we need to redo responsive-elements
+	function resize()
+	{
+	  gs.eachComponent({group: 'resize'},
+	  function(component) {
+	    component.reference.setState({resize: true});
+	  });
+	}
 
 
 /***/ }

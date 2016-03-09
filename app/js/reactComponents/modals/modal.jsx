@@ -6,41 +6,23 @@ var gs = require('./../globalState.js');
 
 module.exports = React.createClass({
 
-  getInitialState: function(){
-    return {hide: false};
-  },
-
-  close: function(e) {
-
-    if(e.target.className == 'btnClose' || e.target.className == 'modalOverlay')
-    {
-
-      var page = gs.getTopMember('page');
-      page.state.displayElement = null;
-      page.reference.setState(page.state);
-    }
-  },
-
   render: function() {
-    //console.log('render');
-    //console.log(this.state.hide);
-    var element = this.props.element;
-    console.log(element);
-    var title = 'Element: ' + element.Name;
 
-    if (this.state && this.state.hide)
+    // state will be returned when the element is loaded
+    if (!(this.props && this.props.element))
     {return (<span></span>);}
-    else {return (
-        <div className="modalOverlay" onClick={this.close}>
-          <div className="modalContainer">
-            <div className="modalContent">
-              <h3><button className = 'btnClose' onClick={this.close}>X</button>{title}</h3>
+    else {
+      var element = this.props.element;
+      var title = 'Element: ' + element.Name;
+      return (
+              <div>
+              <h3>{title}</h3>
               <ModalElement element={element}></ModalElement>
               <Links element={element}></Links>
               <ModalVideos element={element}></ModalVideos>
-            </div>
-          </div>
-        </div>
-      );}
+              </div>
+
+      );
+    }
   }
 });

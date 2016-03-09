@@ -63,14 +63,7 @@ module.exports = {
     return comp;
   }
 
-/*
-  setTopMemberState: function(targetGroup,state)
-  {
-    var member = this.
-  }
-  */
 
-  //
 }
 
 function getComponent(uniqueId) {
