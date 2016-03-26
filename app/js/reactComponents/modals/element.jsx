@@ -3,6 +3,7 @@ var React = require('react');
 module.exports = React.createClass({
 
   render: function(){
+
     var element = this.props.element;
     var table = [];
 

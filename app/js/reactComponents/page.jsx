@@ -5,56 +5,48 @@ var Navbar = require("./navbar/navbar.jsx");
 var Modal = require("./modals/modal.jsx");
 
 var ajax = require("../ajax.js");
-var gs = require('./globalState.js');
-
-var data = require("../data.js");
 
 module.exports = React.createClass({
-  getInitialState: function() {
-    return {
-      data: [],
-      length: 0,
-      displayElement: null
-    }
-  },
 
   render: function() {
-
-    var modules = [], key = 0;
-
-    modules.push(<Navbar key={key++}/>);
-
-    if(this.state.route && this.state.route == "table")
+    var elements = this.props.elements;
+    if(this.state && this.state.route)
     {
-      modules.push(<PeriodicTable key={key++} elements={this.state.data}/>);
-    }
+      var modules = [];
+      var key = 0;
+      modules.push(
+        <Navbar key={key++}/>
+      );
 
-    if(this.state.route && this.state.route == "element")
-    {
-      modules.push(<Modal key={key++} element={this.state.element}></Modal>);
-    }
+      if(this.state.route == "table")
+      {
+        console.log(elements);
+        modules.push(
+          <PeriodicTable
+            key={key++}
+            parentState={this.state}
+            elements={elements}/>
+        );
+      }
 
-    var cell = this.state.length < 1
+      if(this.state.route == "element")
+
+      modules.push(
+        <Modal key={key++} parentState={this.state}></Modal>
+      );
+
+      // if we have a state set return the page
+      return this.state.length < 1
       ? null
       : (
         <span>
           {modules}
         </span>
       );
-
-    return cell;
-  },
-
-  componentDidMount: function() {
-    this.uniqueId = gs.register(this, ['page']);
-
-    var elements = data.getAllElements(function(elements){
-      this.setState({data: elements, length: elements.length});
-    }.bind(this));
-  },
-
-  componentWillUnmount: function(){
-    gs.unregister(this.uniqueId);
+    }
+    else return (
+      <span>Loading...</span>
+    );
   }
 
 });

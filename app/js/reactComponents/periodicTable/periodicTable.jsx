@@ -2,29 +2,29 @@ var React = require('react');
 var Element = require('./element.jsx');
 
 var transitions = require('./../general/transitions.jsx');
-var gs = require('./../globalState.js');
-
+var data = require("../../data.js");
 var color = require('./actions/color.js');
+
+var $ = require('jquery');
+var hf = require('./../../helperFunctions.js');
 
 module.exports = React.createClass({
 
-
-	componentDidMount: function() {
-		this.uniqueId = gs.register(this, ['table']);
+	componentDidMount: function(){
+		// on resize the table's display format may change, this will re-render the table if needed
+	  $(window).resize(hf.debounce(function(){
+			this.forceUpdate();
+		}.bind(this),25,true));
 	},
 
 	componentWillUnmount: function(){
-		gs.unregister(this.uniqueId);
+		$(window).off("resize");
 	},
 
-	getInitialState: function(){
-		return {};
-	},
+	render: function(){
 
-		render: function(){
-
-		var elements = this.props.elements;
 		var cells = [];
+		var elements = this.props.elements;
 
 		// This is to save resources and perform loops before individual elements are created
 		var config = color.prepare(elements);
@@ -35,64 +35,27 @@ module.exports = React.createClass({
 			// Make sure it is a valid element, all emenets must have names this also eliminates csv dups
 			if(element.Name != "")
 			{
-					key++;
-					cells.push(<Element test={Math.random()}
-					key={key}
-					element={element}
-					hexColor={color.getColor(element,config)}
-				/>);
-		}
-
-	});
-
-	return transitions.fadeIn(<span><div onClick={function(){
-		this.setState({bah: true})
-	}.bind(this)}>{cells}</div>
-
-</span>);
-
-
-/*
-
-		var cells = [];
-		var key = 0;
-		var maxRowCount = hf.containsProperty(elements,"Period").absMax;
-
-		for(var i = 0; i <= maxRowCount; i++)
-		{
-			var rowElements = hf.containsProperty(this.props.elements,"Period",i);
-			var maxColumns = hf.containsProperty(rowElements.arr,"Group").absMax;
-
-			for(var j = 0; j <= maxColumns; j++)
-			{
-				var colElements = hf.containsProperty(rowElements.arr,"Group",j);
-
-				if(colElements.arr.length > 1)
-				{
-					throw "ERROR: Periodic table has multiple elements specified for the same row and column.";
-				}
-				else if(colElements.arr.length === 0)
-				{
-					cells.push(<span className="element-placeholder"></span>)
-				}
-				else
-				{
-					var element = colElements.arr[0];
-					var key = key+1;
-					cells.push(<Element test={Math.random()}
-					element={element.Symbol}
-					key={key}
-					number={element.AtomicNumber}
-					mass={element.Atomic_Weight}
-					/>);
-				}
+				key++;
+				cells.push(
+					<Element
+						test={Math.random()}
+						key={key}
+						element={element}
+						hexColor={color.getColor(element,config)}
+						/>
+				);
 			}
-			cells.push(<br/>);
+		});
 
-		}
-		console.log(cells);
-		return transitions.fadeIn(<div onClick={function(){ this.setState({bah: true}) }.bind(this)}>{cells}</div>);
-*/
-		}
+		return transitions.fadeIn(
+			<span>
+				<div onClick={function(){
+						this.setState({bah: true})
+					}.bind(this)}>
+					{cells}
+				</div>
+			</span>
+		);
+}
 
-	});
+});

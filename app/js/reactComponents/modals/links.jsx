@@ -10,7 +10,7 @@ render: function(){
     // Wiki
     cells.push(getCell(
       "Wikipedia",
-      "The popular internet encyclopedia.",
+      this.props.wiki,
       "https://en.wikipedia.org/wiki/" + element.Name,
       element.Name));
 
@@ -18,7 +18,7 @@ render: function(){
     var grayLink = "http://theodoregray.com/periodictable/Elements/" + pad(element.AtomicNumber,3) + "/index.s7.html";
     cells.push(getCell(
       "Theodore Gray",
-      "Theodore Gray is a well known element collector who created the popular book The Elements.  He has a webpage for nearly every element on this table where he shows off samples or associated materials.",
+      ["Theodore Gray is a well known element collector who created the popular book The Elements.  He has a webpage for nearly every element on this table where he shows off samples or associated materials."],
       grayLink,
       element.Name));
 
@@ -29,7 +29,7 @@ render: function(){
 function getCell(title,description,link,element)
 {
   title += " (" + element + ")";
-  return (<div><a target="_blank" href={link}><h3>{title}</h3></a>{description}</div>);
+  return (<div><a target="_blank" href={link}><h3>{title}</h3></a><text>{description}</text></div>);
 }
 
 // taken from http://stackoverflow.com/questions/2998784/how-to-output-integers-with-leading-zeros-in-javascript

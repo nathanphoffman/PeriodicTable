@@ -1,5 +1,4 @@
 var React = require('react');
-var gs = require('./../globalState.js');
 
 module.exports = React.createClass({
 

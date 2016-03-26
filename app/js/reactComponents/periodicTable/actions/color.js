@@ -1,4 +1,4 @@
-var gs = require('./../../globalState.js');
+
 var hf = require('./../../../helperFunctions.js');
 var status = require('./status.js');
 
@@ -32,7 +32,7 @@ module.exports = {
       }
     }
 
-    var table = gs.getTopMember('table');
+    //var table = gs.getTopMember('table');
     table.reference.setState({});
 
     // sets button styles

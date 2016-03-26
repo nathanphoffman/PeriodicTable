@@ -1,6 +1,5 @@
 var React = require('react');
 var Button = require('./button.jsx');
-var gs = require('./../globalState.js');
 var transitions = require('./../general/transitions.jsx');
 var hf = require('./../../helperFunctions.js');
 

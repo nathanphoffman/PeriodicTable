@@ -1,7 +1,6 @@
 
 var React = require('react');
 var Button = require('./button.jsx');
-var gs = require('./../globalState.js');
 var NavbarBottom = require('./navbarBottom.jsx');
 var hf= require('./../../helperFunctions.js');
 

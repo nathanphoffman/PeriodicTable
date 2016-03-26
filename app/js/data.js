@@ -11,24 +11,11 @@ module.exports = {
     },3);
   },
 
-  getElement: function(sym,fn){
-    if(cachedElements === undefined || cachedElements === null){
-      this.getAllElements(function(){
-        this._getElement(sym,fn);
-      }.bind(this));
-    }
-    else this._getElement(sym,fn);
-  },
-
-  _getElement: function(sym,fn)
+  getElement: function(sym,elements,callback)
   {
-    cachedElements.forEach(function(element){
-      if(element.Symbol.toUpperCase() == sym.toUpperCase())
-      {
-        fn(element);
-      }
+    elements.forEach(function(element){
+      if(String(element.Symbol).toUpperCase() == String(sym).toUpperCase())
+        callback(element);
     });
   }
-}
-
-var cachedElements;
+};

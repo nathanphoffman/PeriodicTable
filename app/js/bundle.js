@@ -47,34 +47,41 @@
 	/** @jsx React.DOM */'use strict'
 	
 	//try{
-	    var React = __webpack_require__(1);
-	    var ReactDOM = __webpack_require__(158);
-	    var Page = __webpack_require__(159);
-	    var listeners = __webpack_require__(185);
+	var React = __webpack_require__(1);
+	var ReactDOM = __webpack_require__(158);
+	var Page = __webpack_require__(159);
 	
-	    var data = __webpack_require__(183);
+	var data = __webpack_require__(175);
+	var state = __webpack_require__(185);
+	var api = __webpack_require__(186);
 	
-	    // Initial Render
-	    var renderedComponent = ReactDOM.render(
-	      React.createElement(Page, {route: "default"}),
-	      document.getElementById('reactJS')
-	    );
+	data.getAllElements(function(elements){
 	
-	    routie({
-	      'table': function(){
-	         renderedComponent.setState({route: "table"});
-	      },
-	      'element/:symbol': function(symbol){
-	        data.getElement(symbol, function(element){
-	          renderedComponent.setState({route: "element", element:element});
-	        }.bind(this));
-	      },
-	      '*': function(){
-	        renderedComponent.setState({route: "default"});
-	      }
-	    });
+	  // Initial Render, we save the component to a state module we can access everywhere
+	  state.setRootComponent(ReactDOM.render(
+	    React.createElement(Page, {route: "default", elements: elements}),
+	    document.getElementById('reactJS')
+	  ));
 	
-	    listeners.initialize();
+	  routie({
+	    '': function(){
+	      state.setState({route: "table"});
+	    },
+	    'table': function(){
+	      state.setState({route: "table"});
+	    },
+	    'element/:symbol': function(symbol){
+	      data.getElement(symbol, elements, function(element){
+	        api.getWikiSummary(element.Name,function(response){
+	        state.setState({route: "element", element:element, api:{wiki:response}});
+	      });
+	      }.bind(this));
+	    },
+	    '*': function(){
+	      state.setState({route: "default"});
+	    }
+	  });
+	});
 
 
 /***/ },
@@ -19685,60 +19692,52 @@
 	/** @jsx React.DOM */var React = __webpack_require__(1);
 	
 	var PeriodicTable = __webpack_require__(160);
-	var Navbar = __webpack_require__(178);
-	var Modal = __webpack_require__(163);
+	var Navbar = __webpack_require__(182);
+	var Modal = __webpack_require__(162);
 	
-	var ajax = __webpack_require__(181);
-	var gs = __webpack_require__(162);
-	
-	var data = __webpack_require__(183);
+	var ajax = __webpack_require__(176);
 	
 	module.exports = React.createClass({displayName: "module.exports",
-	  getInitialState: function() {
-	    return {
-	      data: [],
-	      length: 0,
-	      displayElement: null
-	    }
-	  },
 	
 	  render: function() {
-	
-	    var modules = [], key = 0;
-	
-	    modules.push(React.createElement(Navbar, {key: key++}));
-	
-	    if(this.state.route && this.state.route == "table")
+	    var elements = this.props.elements;
+	    if(this.state && this.state.route)
 	    {
-	      modules.push(React.createElement(PeriodicTable, {key: key++, elements: this.state.data}));
-	    }
+	      var modules = [];
+	      var key = 0;
+	      modules.push(
+	        React.createElement(Navbar, {key: key++})
+	      );
 	
-	    if(this.state.route && this.state.route == "element")
-	    {
-	      modules.push(React.createElement(Modal, {key: key++, element: this.state.element}));
-	    }
+	      if(this.state.route == "table")
+	      {
+	        console.log(elements);
+	        modules.push(
+	          React.createElement(PeriodicTable, {
+	            key: key++, 
+	            parentState: this.state, 
+	            elements: elements})
+	        );
+	      }
 	
-	    var cell = this.state.length < 1
+	      if(this.state.route == "element")
+	
+	      modules.push(
+	        React.createElement(Modal, {key: key++, parentState: this.state})
+	      );
+	
+	      // if we have a state set return the page
+	      return this.state.length < 1
 	      ? null
 	      : (
 	        React.createElement("span", null, 
 	          modules
 	        )
 	      );
-	
-	    return cell;
-	  },
-	
-	  componentDidMount: function() {
-	    this.uniqueId = gs.register(this, ['page']);
-	
-	    var elements = data.getAllElements(function(elements){
-	      this.setState({data: elements, length: elements.length});
-	    }.bind(this));
-	  },
-	
-	  componentWillUnmount: function(){
-	    gs.unregister(this.uniqueId);
+	    }
+	    else return (
+	      React.createElement("span", null, "Loading...")
+	    );
 	  }
 	
 	});
@@ -19752,29 +19751,29 @@
 	var Element = __webpack_require__(161);
 	
 	var transitions = __webpack_require__(167);
-	var gs = __webpack_require__(162);
+	var data = __webpack_require__(175);
+	var color = __webpack_require__(179);
 	
-	var color = __webpack_require__(175);
+	var $ = __webpack_require__(177);
+	var hf = __webpack_require__(180);
 	
 	module.exports = React.createClass({displayName: "module.exports",
 	
-	
-		componentDidMount: function() {
-			this.uniqueId = gs.register(this, ['table']);
+		componentDidMount: function(){
+			// on resize the table's display format may change, this will re-render the table if needed
+		  $(window).resize(hf.debounce(function(){
+				this.forceUpdate();
+			}.bind(this),25,true));
 		},
 	
 		componentWillUnmount: function(){
-			gs.unregister(this.uniqueId);
+			$(window).off("resize");
 		},
 	
-		getInitialState: function(){
-			return {};
-		},
+		render: function(){
 	
-			render: function(){
-	
-			var elements = this.props.elements;
 			var cells = [];
+			var elements = this.props.elements;
 	
 			// This is to save resources and perform loops before individual elements are created
 			var config = color.prepare(elements);
@@ -19785,67 +19784,30 @@
 				// Make sure it is a valid element, all emenets must have names this also eliminates csv dups
 				if(element.Name != "")
 				{
-						key++;
-						cells.push(React.createElement(Element, {test: Math.random(), 
-						key: key, 
-						element: element, 
-						hexColor: color.getColor(element,config)}
-					));
-			}
-	
-		});
-	
-		return transitions.fadeIn(React.createElement("span", null, React.createElement("div", {onClick: function(){
-			this.setState({bah: true})
-		}.bind(this)}, cells)
-	
-	));
-	
-	
-	/*
-	
-			var cells = [];
-			var key = 0;
-			var maxRowCount = hf.containsProperty(elements,"Period").absMax;
-	
-			for(var i = 0; i <= maxRowCount; i++)
-			{
-				var rowElements = hf.containsProperty(this.props.elements,"Period",i);
-				var maxColumns = hf.containsProperty(rowElements.arr,"Group").absMax;
-	
-				for(var j = 0; j <= maxColumns; j++)
-				{
-					var colElements = hf.containsProperty(rowElements.arr,"Group",j);
-	
-					if(colElements.arr.length > 1)
-					{
-						throw "ERROR: Periodic table has multiple elements specified for the same row and column.";
-					}
-					else if(colElements.arr.length === 0)
-					{
-						cells.push(<span className="element-placeholder"></span>)
-					}
-					else
-					{
-						var element = colElements.arr[0];
-						var key = key+1;
-						cells.push(<Element test={Math.random()}
-						element={element.Symbol}
-						key={key}
-						number={element.AtomicNumber}
-						mass={element.Atomic_Weight}
-						/>);
-					}
+					key++;
+					cells.push(
+						React.createElement(Element, {
+							test: Math.random(), 
+							key: key, 
+							element: element, 
+							hexColor: color.getColor(element,config)}
+							)
+					);
 				}
-				cells.push(<br/>);
+			});
 	
-			}
-			console.log(cells);
-			return transitions.fadeIn(<div onClick={function(){ this.setState({bah: true}) }.bind(this)}>{cells}</div>);
-	*/
-			}
+			return transitions.fadeIn(
+				React.createElement("span", null, 
+					React.createElement("div", {onClick: function(){
+							this.setState({bah: true})
+						}.bind(this)}, 
+						cells
+					)
+				)
+			);
+	}
 	
-		});
+	});
 
 
 /***/ },
@@ -19853,16 +19815,13 @@
 /***/ function(module, exports, __webpack_require__) {
 
 	/** @jsx React.DOM */var React = __webpack_require__(1);
-	var gs = __webpack_require__(162);
-	var Modal = __webpack_require__(163);
-	
-	var element = {};
-	
+	var Modal = __webpack_require__(162);
+	var elementDisplay = __webpack_require__(166);
 	module.exports = React.createClass({displayName: "module.exports",
 	
 	  render: function() {
 	
-	  element = {
+	  var element = {
 	      number: this.props.element.AtomicNumber,
 	      mass: this.props.element.Atomic_Weight,
 	      period: this.props.element.Period,
@@ -19871,9 +19830,6 @@
 	    };
 	
 	    var originalElement = this.props.element;
-	
-	    //console.log(this.props.element);
-	
 	    var btnClass = "btn btn-default";
 	    var hexColor = this.props.hexColor || "#fff";
 	
@@ -19881,6 +19837,10 @@
 	    var width = window.innerWidth
 	    || document.documentElement.clientWidth
 	    || document.body.clientWidth;
+	
+	    var height = window.innerHeight
+	    || document.documentElement.clientHeight
+	    || document.body.clientHeight;
 	
 	    var btnStyle = {};
 	    var mass = "";
@@ -19895,33 +19855,36 @@
 	      btnStyle.height = "50";
 	      btnStyle.position = "relative";
 	      btnStyle.margin = "3";
-	
 	    }
-	    else if(width >= 1800)
+	    else if(height > 800 && width >= 1800)
 	    {
 	      //console.log(1800);
-	      btnStyle = this.extendedTable(2.7,6.5);
+	      btnStyle = elementDisplay.getExtendedPosition(element,2.7,6.5);
 	      var rounded = Math.round(element.mass*100)/100;
 	      mass = !isNaN(rounded) ? rounded : '-';
 	    }
-	    else if(width >= 1200)
+	    else if(height > 800 && width >= 1200)
 	    {
-	      btnStyle = this.standardTable(4.5,6.5);
+	      btnStyle = elementDisplay.getStandardPosition(element,4.5,6.5);
 	      var rounded = Math.round(element.mass*100)/100;
 	      mass = !isNaN(rounded) ? rounded : '-';
 	    }
 	    else if(width >= 768) {
-	      btnStyle = this.standardTable(4.5,5);
+	      btnStyle = elementDisplay.getStandardPosition(element,4.5,5);
 	    }
-	
 	
 	    btnStyle.backgroundColor = 'rgb(' + hexColor + ',' + hexColor + ',' + hexColor + ')';
 	    btnStyle.color = 'rgb(' + text + ',' + text + ',' + text + ')';
 	
 	    var elementModal = "";
 	
-	
-	    return (React.createElement("button", {style: btnStyle, type: "button", onClick: processElement.bind(originalElement), className: btnClass}, 
+	    return (React.createElement("button", {style: btnStyle, type: "button", onClick: function(){
+	      // We have to return the function containing the element so it does not change as new elements are set
+	      var elem = element.element;
+	      return function(){
+	        window.location.href = "#element/" + elem;
+	      };
+	    }(), className: btnClass}, 
 	      React.createElement("div", {className: "element-table-number"}, 
 	        element.number
 	      ), 
@@ -19933,10 +19896,186 @@
 	      )
 	    ));
 	
+	  }
+	
+	});
+
+
+/***/ },
+/* 162 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/** @jsx React.DOM */var React = __webpack_require__(1);
+	var ModalElement = __webpack_require__(163);
+	var ModalVideos = __webpack_require__(164);
+	var Links = __webpack_require__(165);
+	
+	module.exports = React.createClass({displayName: "module.exports",
+	
+	  render: function() {
+	
+	    // state will be returned when the element is loaded
+	    if (!(this.props && this.props.parentState && this.props.parentState.element))
+	    {return (React.createElement("span", null));}
+	    else {
+	      var element = this.props.parentState.element;
+	      var title = 'Element: ' + element.Name;
+	      return (
+	              React.createElement("div", null, 
+	              React.createElement("h3", null, title), 
+	              React.createElement(ModalElement, {element: element}), 
+	              React.createElement(ModalVideos, {element: element}), 
+	              React.createElement(Links, {element: element, wiki: this.props.parentState.api.wiki})
+	              )
+	
+	      );
+	    }
+	  }
+	});
+
+
+/***/ },
+/* 163 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/** @jsx React.DOM */var React = __webpack_require__(1);
+	
+	module.exports = React.createClass({displayName: "module.exports",
+	
+	  render: function(){
+	
+	    var element = this.props.element;
+	    var table = [];
+	
+	    var index = 0;
+	    for(var property in element)
+	    {
+	      index++;
+	      table.push(React.createElement("tr", {key: index}, React.createElement("td", null, property), React.createElement("td", null, element[property])));
+	    }
+	
+	    return React.createElement("div", {className: "col-md-4"}, React.createElement("table", null, React.createElement("tbody", null, table)));
+	  }
+	
+	});
+
+
+/***/ },
+/* 164 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/** @jsx React.DOM */var React = __webpack_require__(1);
+	
+	module.exports = React.createClass({displayName: "module.exports",
+	  render: function(){
+	    var element = this.props.element;
+	    //["Periodic Video 1"]
+	
+	    //return (<iframe width="560" height="315" src={element["Periodic Video 1"]} frameborder="0"></iframe>);
+	    var videos = element.PeriodicVideos.split(',');
+	    var videoTags = [];
+	
+	    videos.forEach(function(video){
+	      var videoSrc = "https://www.youtube.com/embed/" + video + "?list=PL7A1F4CF36C085DE1";
+	      videoTags.push(React.createElement("iframe", {className: "video", src: videoSrc, frameborder: "0", allowfullscreen: true}));
+	    });
+	
+	    return (React.createElement("div", {className: "col-md-6"}, React.createElement("h1", null, "Periodic Videos:"), videoTags));
+	    //return (<span></span>);
+	  }
+	});
+
+
+/***/ },
+/* 165 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/** @jsx React.DOM */var React = __webpack_require__(1);
+	
+	module.exports = React.createClass({displayName: "module.exports",
+	
+	render: function(){
+	    var element = this.props.element;
+	
+	    var cells = [];
+	
+	    // Wiki
+	    cells.push(getCell(
+	      "Wikipedia",
+	      this.props.wiki,
+	      "https://en.wikipedia.org/wiki/" + element.Name,
+	      element.Name));
+	
+	    // Theodore Gray
+	    var grayLink = "http://theodoregray.com/periodictable/Elements/" + pad(element.AtomicNumber,3) + "/index.s7.html";
+	    cells.push(getCell(
+	      "Theodore Gray",
+	      ["Theodore Gray is a well known element collector who created the popular book The Elements.  He has a webpage for nearly every element on this table where he shows off samples or associated materials."],
+	      grayLink,
+	      element.Name));
+	
+	    return(React.createElement("div", {className: "col-md-6"}, cells))
+	  }
+	});
+	
+	function getCell(title,description,link,element)
+	{
+	  title += " (" + element + ")";
+	  return (React.createElement("div", null, React.createElement("a", {target: "_blank", href: link}, React.createElement("h3", null, title)), React.createElement("text", null, description)));
+	}
+	
+	// taken from http://stackoverflow.com/questions/2998784/how-to-output-integers-with-leading-zeros-in-javascript
+	function pad(num, size) {
+	    var s = num+"";
+	    while (s.length < size) s = "0" + s;
+	    return s;
+	}
+
+
+/***/ },
+/* 166 */
+/***/ function(module, exports) {
+
+	module.exports = {
+	
+	  getStandardPosition: function(element, width, height)
+	  {
+	    var left;
+	
+	    var widthSpace = Math.ceil(width*1.1);
+	    var heightSpace = Math.ceil(height*1.1);
+	
+	    var group = element.group;
+	    var number = element.number;
+	    var period = element.period;
+	
+	    if(group != "null")
+	      {
+	        left = Number(group*widthSpace) + '%';
+	      }
+	      else {
+	        if(number < 89)
+	        {
+	          left = Number((3+(number-57))*widthSpace) + '%';
+	          period = Number(period) + 2.5;
+	        }
+	        else {
+	          left = Number((3+(number-89))*widthSpace) + '%';
+	          period = Number(period) + 2.5;
+	        }
+	      }
+	      var top = Number(period*heightSpace + 6) + '%';
+	
+	      return {
+	        left: left,
+	        top: top,
+	        width: width + "%",
+	        height: height + "%",
+	        position: "absolute"
+	      };
 	  },
 	
-	
-	  extendedTable: function(width,height)
+	  getExtendedPosition: function(element, width,height)
 	  {
 	    var left;
 	
@@ -19974,272 +20113,7 @@
 	        height: height + "%",
 	        position: "absolute"
 	      };
-	
-	  },
-	
-	  standardTable: function(width, height)
-	  {
-	    var left;
-	
-	    var widthSpace = Math.ceil(width*1.1);
-	    var heightSpace = Math.ceil(height*1.1);
-	
-	    var group = element.group;
-	    var number = element.number;
-	    var period = element.period;
-	
-	    if(group != "null")
-	      {
-	        left = Number(group*widthSpace) + '%';
-	      }
-	      else {
-	        if(number < 89)
-	        {
-	          left = Number((3+(number-57))*widthSpace) + '%';
-	          period = Number(period) + 2.5;
-	        }
-	        else {
-	          left = Number((3+(number-89))*widthSpace) + '%';
-	          period = Number(period) + 2.5;
-	        }
-	      }
-	      var top = Number(period*heightSpace + 6) + '%';
-	
-	      return {
-	        left: left,
-	        top: top,
-	        width: width + "%",
-	        height: height + "%",
-	        position: "absolute"
-	      };
-	
-	  },
-	    componentDidMount: function() {
-	      this.uniqueId = gs.register(this, ['element','resize']);
-	    },
-	
-	  	componentWillUnmount: function(){
-	  		gs.unregister(this.uniqueId);
-	  	}
-	
-	});
-	
-	function processElement()
-	{
-	  var page = gs.getTopMember('page');
-	  page.state.displayElement = this;
-	  page.reference.setState(page.state);
-	}
-
-
-/***/ },
-/* 162 */
-/***/ function(module, exports) {
-
-	module.exports = {
-	
-	  register: function(component, groups, state) {
-	
-	    state = state || {};
-	    groups = groups || [];
-	
-	    var uniqueId = _uniqueId++;
-	    _components[uniqueId] = {
-	      uniqueId: uniqueId,
-	      reference: component,
-	      state: state,
-	      groups: groups
-	    };
-	
-	    return uniqueId;
-	  },
-	
-	  unregister: function(uniqueId) {
-	    _components.forEach(function(component, index) {
-	      if (component.uniqueId === uniqueId) {
-	        component.splice(index, 1);
-	        return;
-	      }
-	    });
-	  },
-	
-	  getState: function(uniqueId) {
-	    var component = getComponent(uniqueId);
-	    return component.state;
-	  },
-	
-	  setState: function(uniqueId, state) {
-	    _components[uniqueId].state = state;
-	  },
-	
-	  eachComponent: function(config, func) {
-	
-	    var targetGroup = config.group;
-	    var ignoreId = config.ignoreId || -1;
-	
-	    _components.forEach(function(component) {
-	      component.groups.forEach(function(group) {
-	        if (group == targetGroup && ignoreId != component.uniqueId) {
-	          func(component);
-	        }
-	      });
-	    });
-	  },
-	
-	  getTopMember: function(targetGroup)
-	  {
-	    var comp = null;
-	
-	    _components.forEach(function(component) {
-	      component.groups.forEach(function(group) {
-	        if (group == targetGroup) {
-	          comp = component;
-	        }
-	      });
-	    });
-	
-	    return comp;
 	  }
-	
-	
-	}
-	
-	function getComponent(uniqueId) {
-	  return _components[uniqueId];
-	}
-	
-	var _uniqueId = 0;
-	var _components = [];
-
-
-/***/ },
-/* 163 */
-/***/ function(module, exports, __webpack_require__) {
-
-	/** @jsx React.DOM */var React = __webpack_require__(1);
-	var ModalElement = __webpack_require__(164);
-	var ModalVideos = __webpack_require__(165);
-	var Links = __webpack_require__(166);
-	var gs = __webpack_require__(162);
-	
-	module.exports = React.createClass({displayName: "module.exports",
-	
-	  render: function() {
-	
-	    // state will be returned when the element is loaded
-	    if (!(this.props && this.props.element))
-	    {return (React.createElement("span", null));}
-	    else {
-	      var element = this.props.element;
-	      var title = 'Element: ' + element.Name;
-	      return (
-	              React.createElement("div", null, 
-	              React.createElement("h3", null, title), 
-	              React.createElement(ModalElement, {element: element}), 
-	              React.createElement(Links, {element: element}), 
-	              React.createElement(ModalVideos, {element: element})
-	              )
-	
-	      );
-	    }
-	  }
-	});
-
-
-/***/ },
-/* 164 */
-/***/ function(module, exports, __webpack_require__) {
-
-	/** @jsx React.DOM */var React = __webpack_require__(1);
-	
-	module.exports = React.createClass({displayName: "module.exports",
-	
-	  render: function(){
-	    var element = this.props.element;
-	    var table = [];
-	
-	    var index = 0;
-	    for(var property in element)
-	    {
-	      index++;
-	      table.push(React.createElement("tr", {key: index}, React.createElement("td", null, property), React.createElement("td", null, element[property])));
-	    }
-	
-	    return React.createElement("div", {className: "col-md-4"}, React.createElement("table", null, React.createElement("tbody", null, table)));
-	  }
-	
-	});
-
-
-/***/ },
-/* 165 */
-/***/ function(module, exports, __webpack_require__) {
-
-	/** @jsx React.DOM */var React = __webpack_require__(1);
-	
-	module.exports = React.createClass({displayName: "module.exports",
-	  render: function(){
-	    var element = this.props.element;
-	    //["Periodic Video 1"]
-	
-	    //return (<iframe width="560" height="315" src={element["Periodic Video 1"]} frameborder="0"></iframe>);
-	    var videos = element.PeriodicVideos.split(',');
-	    var videoTags = [];
-	
-	    videos.forEach(function(video){
-	      var videoSrc = "https://www.youtube.com/embed/" + video + "?list=PL7A1F4CF36C085DE1";
-	      videoTags.push(React.createElement("iframe", {className: "video", src: videoSrc, frameborder: "0", allowfullscreen: true}));
-	    });
-	
-	    return (React.createElement("div", {className: "col-md-6"}, React.createElement("h1", null, "Periodic Videos:"), videoTags));
-	    //return (<span></span>);
-	  }
-	});
-
-
-/***/ },
-/* 166 */
-/***/ function(module, exports, __webpack_require__) {
-
-	/** @jsx React.DOM */var React = __webpack_require__(1);
-	
-	module.exports = React.createClass({displayName: "module.exports",
-	
-	render: function(){
-	    var element = this.props.element;
-	
-	    var cells = [];
-	
-	    // Wiki
-	    cells.push(getCell(
-	      "Wikipedia",
-	      "The popular internet encyclopedia.",
-	      "https://en.wikipedia.org/wiki/" + element.Name,
-	      element.Name));
-	
-	    // Theodore Gray
-	    var grayLink = "http://theodoregray.com/periodictable/Elements/" + pad(element.AtomicNumber,3) + "/index.s7.html";
-	    cells.push(getCell(
-	      "Theodore Gray",
-	      "Theodore Gray is a well known element collector who created the popular book The Elements.  He has a webpage for nearly every element on this table where he shows off samples or associated materials.",
-	      grayLink,
-	      element.Name));
-	
-	    return(React.createElement("div", {className: "col-md-6"}, cells))
-	  }
-	});
-	
-	function getCell(title,description,link,element)
-	{
-	  title += " (" + element + ")";
-	  return (React.createElement("div", null, React.createElement("a", {target: "_blank", href: link}, React.createElement("h3", null, title)), description));
-	}
-	
-	// taken from http://stackoverflow.com/questions/2998784/how-to-output-integers-with-leading-zeros-in-javascript
-	function pad(num, size) {
-	    var s = num+"";
-	    while (s.length < size) s = "0" + s;
-	    return s;
 	}
 
 
@@ -21077,537 +20951,66 @@
 /* 175 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var gs = __webpack_require__(162);
-	var hf = __webpack_require__(176);
-	var status = __webpack_require__(177);
+	var ajax = __webpack_require__(176);
+	var csvToJson = __webpack_require__(178);
 	
 	module.exports = {
 	
-	  load: function(handler) {
-	    //gs.setState({});
-	    //console.log("would have loaded " + this.field);
-	    var ctrlKey = handler.ctrlKey || false;
-	    handler.preventDefault();
-	
-	    // reset to default if empty string
-	    if (this.field == "") {
-	      styledElements.splice(0, styledElements.length);
-	      curve = 0;
-	    } else if (this.field == 'curve') {
-	      curve = !curve;
-	    } else {
-	      // only allow one of each prop to be added
-	      var index = hf.getIndexByAttr(styledElements, 'propName', this.field);
-	
-	      if (index === -1) {
-	        styledElements.push({
-	          propName: this.field,
-	          subtract: ctrlKey
-	        });
-	      }
-	      // otherwise remove it:
-	      else {
-	        styledElements.splice(index, 1);
-	      }
-	    }
-	
-	    var table = gs.getTopMember('table');
-	    table.reference.setState({});
-	
-	    // sets button styles
-	    this.reference.setState({
-	      styledElements: styledElements,
-	      curve: curve
-	    });
+	  getAllElements: function(callback){
+	    ajax.get('/elements.csv',function(csv){
+	      var json = csvToJson.CSV2OBJ(csv);
+	      cachedElements = json;
+	      callback(json);
+	    },3);
 	  },
 	
-	  // We prepare the full elements array, get ranges and sort to improve performance
-	  prepare: function(elements) {
-	
-	    var result = {
-	      ranges: [],
-	      elements: elements
-	    };
-	
-	    styledElements.forEach(function(styledElement) {
-	      var propName = styledElement.propName;
-	      var prop = hf.containsProperty(elements, propName);
-	
-	      if (!curve) {
-	        result.ranges[propName] = Math.abs(prop.absMax) + Math.abs(prop.absMin);
-	      }
-	      else {
-	        result.ranges[propName] = hf.getValidArrayLength(elements,propName);
-	      }
+	  getElement: function(sym,elements,callback)
+	  {
+	    elements.forEach(function(element){
+	      if(String(element.Symbol).toUpperCase() == String(sym).toUpperCase())
+	        callback(element);
 	    });
-	
-	    return result;
-	
-	  },
-	
-	  // Gets the color based on prepare() and the value of the element prop
-	  getColor: function(element,config) {
-	
-	    var ranges = config.ranges;
-	    var sortedElements = config.sortedElements;
-	    var elements = config.elements;
-	
-	    // White is default if no colors are applied
-	    if (styledElements.length == 0) {
-	      return 255;
-	    }
-	
-	    var total = 0;
-	    var skip = false;
-	
-	    styledElements.forEach(function(styledElement) {
-	      var propName = styledElement.propName;
-	      var range = ranges[propName];
-	      var value = null;
-	
-	      if (!curve) {
-	        value = element[propName];
-	      } else {
-	        value = hf.getRankingInArray(elements,propName,element[propName]);
-	          //console.log(value);
-	      }
-	
-	      if(isNaN(value))
-	      {
-	        skip = true;
-	        return;
-	      }
-	      else {
-	        total += Number(value / range);
-	        total = styledElement.subtract ? 1 - total : total;
-	      }
-	
-	    }.bind(this));
-	
-	    if(skip) { return NaN; }
-	
-	    var percent = (total / styledElements.length);
-	    var color = Math.ceil(255 - percent * 255);
-	    return color;
-	
 	  }
-	
-	}
-	
-	var styledElements = [];
-	var curve = false;
+	};
 
 
 /***/ },
 /* 176 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var React = __webpack_require__(1);
+	var $ = __webpack_require__(177);
 	
 	module.exports = {
-	  containsProperty: function(arr, prop, value) {
-	    if (!value) {
-	      value = null;
-	    }
+		get: function (url,callback,num) {
 	
-	    var result = {
-	      arr: [],
-	      max: 0
-	    };
+			typeof num === 'undefined' ? 0 : num;
 	
-			var last = null;
+			$.ajax({
+				url: url
+			}).done(callback).fail(function(){
 	
-	    arr.forEach(function(e) {
+				// retry on failure x times
+				if(num++ > 3)
+					module.exports.get(url,callback,num);
 	
-				// This gets max/min values in the array, needs rewrite
-	      if (e[prop] === value) {
-	        result.arr.push(e);
-	        result.max = e[prop] > result.max
-	          ? e[prop]
-	          : result.max;
-	      }
-	
-	      if (!result.absMax && e[prop]) {
-	        result.absMax = e[prop];
-	      }
-	
-	      if (!result.absMin && e[prop]) {
-	        result.absMin = e[prop];
-	      }
-	
-	      result.absMax = e[prop] > result.absMax
-	        ? e[prop]
-	        : result.absMax;
-	      result.absMin = e[prop] < result.absMin
-	        ? e[prop]
-	        : result.absMin;
-	
-	    });
-	
-	    return result;
-	  },
-	
-	  debounce: function(func, wait, immediate) {
-	    console.log('debouncing');
-	  	var timeout;
-	  	return function() {
-	  		var context = this, args = arguments;
-	  		var later = function() {
-	  			timeout = null;
-	  			if (!immediate) func.apply(context, args);
-	  		};
-	  		var callNow = immediate && !timeout;
-	  		clearTimeout(timeout);
-	  		timeout = setTimeout(later, wait);
-	  		if (callNow) func.apply(context, args);
-	  	};
-	  },
-	
-	  btnHandler: function(handler, component) {
-	    var type = handler.target.parentElement.id;
-	
-	    if (handler.target.id != "") {component.setState({type: handler.target.id});} else if (type !== undefined && type != "") {component.setState({type: type});}
-	  },
-	
-	  getIndexByAttr: function(array, attr, value) {
-	    var index = -1;
-	
-	    for (var i = 0; i < array.length; i++) {
-	      if (array[i][attr] === value) {return i;}
-	    }
-	
-	    return -1;
-	  },
-	
-	  removeFromArray: function(array, attr, value) {
-	    var index = this.getIndexByAttr(array, attr, value);
-	    array.splice(index, 1);
-	    return array;
-	  },
-	
-	  sortObjectArray: function(objArray, attr) {
-	
-			var newArr = objArray;
-	
-	    function compare(a, b) {
-	      if (a[attr] < b[attr])
-	        return -1;
-	      if (a[attr] > b[attr])
-	        return 1;
-	      return 0;
-	    }
-	
-	    return newArr.sort(compare);
-	  },
-	
-		getRankingInArray: function(arr,prop,value)
-		{
-	
-			if(isNaN(value))
-			{
-				return NaN;
-			}
-	
-				var ranking = 0;
-				var last = null;
-	
-				arr.forEach(function(e) {
-					// get ranking by comparing last value to current
-					if(last === null) { last = e[prop] };
-	
-					if(value > last)
-					{
-						ranking++;
-					}
-	
-					last = e[prop];
-				});
-	
-				return ranking;
+				throw "A problem occured while pulling data.";
+			});
 		},
 	
-		getValidArrayLength: function(elements,prop){
-			var length = 1;
-			elements.forEach(function(element){
-				if(!isNaN(element[prop]))
-				{
-					length++;
-				}
+		getJSONP: function(url,callback){
+			$.getJSON(url, function(result){
+			   callback(result);
 			});
-	
-			return length;
 		}
-	
 	}
 
 
 /***/ },
 /* 177 */
-/***/ function(module, exports) {
-
-	module.exports = {
-	  
-	}
-
-
-/***/ },
-/* 178 */
-/***/ function(module, exports, __webpack_require__) {
-
-	/** @jsx React.DOM */
-	var React = __webpack_require__(1);
-	var Button = __webpack_require__(179);
-	var gs = __webpack_require__(162);
-	var NavbarBottom = __webpack_require__(180);
-	var hf= __webpack_require__(176);
-	
-	module.exports = React.createClass({displayName: "module.exports",
-	
-	  getInitialState: function(){
-	    return {type: 'view'};
-	  },
-	
-	  click: function(handler){
-	    hf.btnHandler(handler,this);
-	  },
-	
-	  isActive: function(button){
-	
-	    console.log(this.state.type);
-	
-	    if(this.state.type !== undefined && button == this.state.type)
-	    {
-	      return 'active';
-	    }
-	
-	    return '';
-	  },
-	
-	  render: function()
-	  {
-	    return(
-	      React.createElement("div", {className: "navParent"}, 
-	        React.createElement("div", {onClick: this.click, className: "navCenter navTop"}, 
-	              React.createElement(Button, {activeClass: this.isActive('VIEW'), hide: true, name: "VIEW", glyph: "eye-open"}), 
-	              React.createElement(Button, {activeClass: this.isActive('SORT'), name: "SORT", glyph: "resize-vertical"}), 
-	              React.createElement(Button, {activeClass: this.isActive('COLOR'), name: "COLOR", glyph: "tint"}), 
-	              React.createElement(Button, {activeClass: this.isActive('ANALYZE'), name: "ANALYZE", glyph: "stats"}), 
-	              React.createElement(Button, {activeClass: this.isActive('ABOUT'), name: "ABOUT", glyph: "info-sign"})
-	        ), 
-	        React.createElement(NavbarBottom, {type: this.state.type})
-	      )
-	    );
-	  }
-	});
-
-
-/***/ },
-/* 179 */
-/***/ function(module, exports, __webpack_require__) {
-
-	/** @jsx React.DOM */var React = __webpack_require__(1);
-	var gs = __webpack_require__(162);
-	
-	module.exports = React.createClass({displayName: "module.exports",
-	
-	  render: function() {
-	
-	    var classNames = "";
-	
-	    if (this.props.type && this.props.type == "sub") {
-	      classNames += "btnAction ";
-	    } else {
-	      classNames += "btnTop ";
-	    }
-	
-	    // set active class
-	    if (this.props.activeClass !== null && this.props.activeClass) {
-	      classNames += this.props.activeClass + ' ';
-	    }
-	
-	    if (this.props.glyph) {
-	      var glyphClass = "glyphicon glyphicon-" + this.props.glyph;
-	    } else {
-	      var glyphClass = "";
-	    }
-	
-	    var textClass = "navText hidden-xs";
-	
-	    if (this.props.type && this.props.type == 'sub') {
-	      textClass += " hidden-sm";
-	    }
-	
-	    if (this.props.hide) {
-	      classNames += " hidden-xs";
-	    }
-	
-	    var click = function() {};
-	
-	    if (this.props.click && typeof this.props.click === 'function') {
-	      click = this.props.click;
-	    }
-	
-	    return (
-	      React.createElement("a", {href: "#", onClick: this.props.click, id: this.props.name, className: classNames}, 
-	        React.createElement("span", {className: glyphClass, "aria-hidden": "true"}), 
-	        React.createElement("span", {className: textClass}, this.props.name)
-	      )
-	    );
-	  }
-	
-	});
-
-
-/***/ },
-/* 180 */
-/***/ function(module, exports, __webpack_require__) {
-
-	/** @jsx React.DOM */var React = __webpack_require__(1);
-	var Button = __webpack_require__(179);
-	var gs = __webpack_require__(162);
-	var transitions = __webpack_require__(167);
-	var hf = __webpack_require__(176);
-	
-	var color = __webpack_require__(175);
-	
-	module.exports = React.createClass({displayName: "module.exports",
-	
-	  getButtons: function(arr, func) {
-	
-	    var arrComponent = [];
-	
-	    arr.forEach(function(component, index) {
-	
-	      var activeClass = "";
-	
-	      if (component.field == 'curve') {
-	        if (this.state && this.state.curve) {
-	          activeClass = "activeAction";
-	        }
-	      } else if (this.state && this.state.styledElements) {this.state.styledElements.forEach(function(element) {
-	          if (element.propName == component.field) {
-	            activeClass = element.subtract
-	              ? "activeActionSubtract"
-	              : "activeActionAdd";
-	          }
-	        });}
-	
-	      // We use this to call back to the individual button
-	      component['reference'] = this;
-	
-	      arrComponent.push(
-	        React.createElement(Button, {
-	          key: index, 
-	          glyph: component.glyph, 
-	          click: func.bind(component), 
-	          activeClass: activeClass, 
-	          name: component.name, 
-	          type: "sub"})
-	      );
-	
-	    }.bind(this));
-	
-	    return arrComponent;
-	  },
-	
-	  buttonDefs: function() {
-	    switch (this.props.type)
-	    {case "COLOR":
-	        return this.getButtons([
-	          {
-	            name: 'CLEAR',
-	            field: '',
-	            glyph: 'ban-circle'
-	          }, {
-	            name: 'CURVE',
-	            field: 'curve',
-	            glyph: 'signal'
-	          },
-	          {
-	            name: 'MELTING',
-	            field: 'MeltingPoint-C',
-	            glyph: 'tint'
-	          },
-	          {
-	            name: 'ATOMICRADIUS',
-	            field: 'AtomicRadius',
-	            glyph:'resize-full'
-	          },
-	          {
-	            name: 'SPECIFICHEAT',
-	            field: 'SpecificHeat',
-	            glyph: 'fire'
-	          }, {
-	            name: 'DENSITY',
-	            field: 'Density-gcc',
-	            glyph: 'scale'
-	          },
-	          {
-	            name: 'ELECTRONEGATIVITY',
-	            field: 'PaulingElectronegativity',
-	            glyph: 'flash'
-	          },
-	        ], color.load);
-	
-	        //electronegativity glyph: flash
-	
-	        case "ANALYZE":
-	          return this.getButtons([
-	            {
-	              name: 'GRAPH'
-	            }, {
-	              name: 'TABLE'
-	            }, {
-	              name: 'UNSELECT'
-	            }
-	          ], function() {});}
-	
-	        return [];
-	      },
-	
-	      render: function() {
-	        var buttons = this.buttonDefs();
-	        //transitions.fadeIn(
-	        return (
-	          React.createElement("span", null, 
-	          React.createElement("div", {id: "periodicTable", className: "navCenter navBottom"}, buttons)
-	          )
-	        );
-	
-	      }
-	    });
-
-
-/***/ },
-/* 181 */
-/***/ function(module, exports, __webpack_require__) {
-
-	var $ = __webpack_require__(182);
-	
-	module.exports = {
-		get: function (url,callback,num) {
-			
-			typeof num === 'undefined' ? 0 : num;
-			
-			$.ajax({
-				url: url
-			}).done(callback).fail(function(){
-				
-				// retry on failure x times
-				if(num++ > globals.ajaxRetry)
-					module.exports.get(url,callback,num);
-	
-				throw "A problem occured while pulling data.";
-			});
-		}
-	}
-
-/***/ },
-/* 182 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;/*!
-	 * jQuery JavaScript Library v2.2.0
+	 * jQuery JavaScript Library v2.2.2
 	 * http://jquery.com/
 	 *
 	 * Includes Sizzle.js
@@ -21617,7 +21020,7 @@
 	 * Released under the MIT license
 	 * http://jquery.org/license
 	 *
-	 * Date: 2016-01-08T20:02Z
+	 * Date: 2016-03-17T17:51Z
 	 */
 	
 	(function( global, factory ) {
@@ -21673,7 +21076,7 @@
 	
 	
 	var
-		version = "2.2.0",
+		version = "2.2.2",
 	
 		// Define a local copy of jQuery
 		jQuery = function( selector, context ) {
@@ -21884,6 +21287,7 @@
 		},
 	
 		isPlainObject: function( obj ) {
+			var key;
 	
 			// Not plain objects:
 			// - Any object or value whose internal [[Class]] property is not "[object Object]"
@@ -21893,14 +21297,18 @@
 				return false;
 			}
 	
+			// Not own constructor property must be Object
 			if ( obj.constructor &&
-					!hasOwn.call( obj.constructor.prototype, "isPrototypeOf" ) ) {
+					!hasOwn.call( obj, "constructor" ) &&
+					!hasOwn.call( obj.constructor.prototype || {}, "isPrototypeOf" ) ) {
 				return false;
 			}
 	
-			// If the function hasn't returned already, we're confident that
-			// |obj| is a plain object, created by {} or constructed with new Object
-			return true;
+			// Own properties are enumerated firstly, so to speed up,
+			// if last one is own, then all properties are own
+			for ( key in obj ) {}
+	
+			return key === undefined || hasOwn.call( obj, key );
 		},
 	
 		isEmptyObject: function( obj ) {
@@ -26087,7 +25495,7 @@
 		if ( fn === false ) {
 			fn = returnFalse;
 		} else if ( !fn ) {
-			return this;
+			return elem;
 		}
 	
 		if ( one === 1 ) {
@@ -26736,14 +26144,14 @@
 		rscriptTypeMasked = /^true\/(.*)/,
 		rcleanScript = /^\s*<!(?:\[CDATA\[|--)|(?:\]\]|--)>\s*$/g;
 	
+	// Manipulating tables requires a tbody
 	function manipulationTarget( elem, content ) {
-		if ( jQuery.nodeName( elem, "table" ) &&
-			jQuery.nodeName( content.nodeType !== 11 ? content : content.firstChild, "tr" ) ) {
+		return jQuery.nodeName( elem, "table" ) &&
+			jQuery.nodeName( content.nodeType !== 11 ? content : content.firstChild, "tr" ) ?
 	
-			return elem.getElementsByTagName( "tbody" )[ 0 ] || elem;
-		}
-	
-		return elem;
+			elem.getElementsByTagName( "tbody" )[ 0 ] ||
+				elem.appendChild( elem.ownerDocument.createElement( "tbody" ) ) :
+			elem;
 	}
 	
 	// Replace/restore the type attribute of script elements for safe DOM manipulation
@@ -27250,7 +26658,7 @@
 			// FF meanwhile throws on frame elements through "defaultView.getComputedStyle"
 			var view = elem.ownerDocument.defaultView;
 	
-			if ( !view.opener ) {
+			if ( !view || !view.opener ) {
 				view = window;
 			}
 	
@@ -27399,15 +26807,18 @@
 			style = elem.style;
 	
 		computed = computed || getStyles( elem );
+		ret = computed ? computed.getPropertyValue( name ) || computed[ name ] : undefined;
+	
+		// Support: Opera 12.1x only
+		// Fall back to style even without computed
+		// computed is undefined for elems on document fragments
+		if ( ( ret === "" || ret === undefined ) && !jQuery.contains( elem.ownerDocument, elem ) ) {
+			ret = jQuery.style( elem, name );
+		}
 	
 		// Support: IE9
 		// getPropertyValue is only needed for .css('filter') (#12537)
 		if ( computed ) {
-			ret = computed.getPropertyValue( name ) || computed[ name ];
-	
-			if ( ret === "" && !jQuery.contains( elem.ownerDocument, elem ) ) {
-				ret = jQuery.style( elem, name );
-			}
 	
 			// A tribute to the "awesome hack by Dean Edwards"
 			// Android Browser returns percentage for some values,
@@ -28930,6 +28341,12 @@
 		}
 	} );
 	
+	// Support: IE <=11 only
+	// Accessing the selectedIndex property
+	// forces the browser to respect setting selected
+	// on the option
+	// The getter ensures a default option is selected
+	// when in an optgroup
 	if ( !support.optSelected ) {
 		jQuery.propHooks.selected = {
 			get: function( elem ) {
@@ -28938,6 +28355,16 @@
 					parent.parentNode.selectedIndex;
 				}
 				return null;
+			},
+			set: function( elem ) {
+				var parent = elem.parentNode;
+				if ( parent ) {
+					parent.selectedIndex;
+	
+					if ( parent.parentNode ) {
+						parent.parentNode.selectedIndex;
+					}
+				}
 			}
 		};
 	}
@@ -29132,7 +28559,8 @@
 	
 	
 	
-	var rreturn = /\r/g;
+	var rreturn = /\r/g,
+		rspaces = /[\x20\t\r\n\f]+/g;
 	
 	jQuery.fn.extend( {
 		val: function( value ) {
@@ -29208,9 +28636,15 @@
 			option: {
 				get: function( elem ) {
 	
-					// Support: IE<11
-					// option.value not trimmed (#14858)
-					return jQuery.trim( elem.value );
+					var val = jQuery.find.attr( elem, "value" );
+					return val != null ?
+						val :
+	
+						// Support: IE10-11+
+						// option.text throws exceptions (#14686, #14858)
+						// Strip and collapse whitespace
+						// https://html.spec.whatwg.org/#strip-and-collapse-whitespace
+						jQuery.trim( jQuery.text( elem ) ).replace( rspaces, " " );
 				}
 			},
 			select: {
@@ -29263,7 +28697,7 @@
 					while ( i-- ) {
 						option = options[ i ];
 						if ( option.selected =
-								jQuery.inArray( jQuery.valHooks.option.get( option ), values ) > -1
+							jQuery.inArray( jQuery.valHooks.option.get( option ), values ) > -1
 						) {
 							optionSet = true;
 						}
@@ -29457,7 +28891,7 @@
 					// But now, this "simulate" function is used only for events
 					// for which stopPropagation() is noop, so there is no need for that anymore.
 					//
-					// For the compat branch though, guard for "click" and "submit"
+					// For the 1.x branch though, guard for "click" and "submit"
 					// events is still used, but was moved to jQuery.event.stopPropagation function
 					// because `originalEvent` should point to the original event for the constancy
 					// with other events and for more focused logic
@@ -30958,18 +30392,6 @@
 	
 	
 	
-	// Support: Safari 8+
-	// In Safari 8 documents created via document.implementation.createHTMLDocument
-	// collapse sibling forms: the second one becomes a child of the first one.
-	// Because of that, this security measure has to be disabled in Safari 8.
-	// https://bugs.webkit.org/show_bug.cgi?id=137337
-	support.createHTMLDocument = ( function() {
-		var body = document.implementation.createHTMLDocument( "" ).body;
-		body.innerHTML = "<form></form><form></form>";
-		return body.childNodes.length === 2;
-	} )();
-	
-	
 	// Argument "data" should be string of html
 	// context (optional): If specified, the fragment will be created in this context,
 	// defaults to document
@@ -30982,12 +30404,7 @@
 			keepScripts = context;
 			context = false;
 		}
-	
-		// Stop scripts or inline event handlers from being executed immediately
-		// by using document.implementation
-		context = context || ( support.createHTMLDocument ?
-			document.implementation.createHTMLDocument( "" ) :
-			document );
+		context = context || document;
 	
 		var parsed = rsingleTag.exec( data ),
 			scripts = !keepScripts && [];
@@ -31227,11 +30644,8 @@
 				}
 	
 				// Add offsetParent borders
-				// Subtract offsetParent scroll positions
-				parentOffset.top += jQuery.css( offsetParent[ 0 ], "borderTopWidth", true ) -
-					offsetParent.scrollTop();
-				parentOffset.left += jQuery.css( offsetParent[ 0 ], "borderLeftWidth", true ) -
-					offsetParent.scrollLeft();
+				parentOffset.top += jQuery.css( offsetParent[ 0 ], "borderTopWidth", true );
+				parentOffset.left += jQuery.css( offsetParent[ 0 ], "borderLeftWidth", true );
 			}
 	
 			// Subtract parent offsets and element margins
@@ -31440,47 +30854,7 @@
 
 
 /***/ },
-/* 183 */
-/***/ function(module, exports, __webpack_require__) {
-
-	var ajax = __webpack_require__(181);
-	var csvToJson = __webpack_require__(184);
-	
-	module.exports = {
-	
-	  getAllElements: function(callback){
-	    ajax.get('/elements.csv',function(csv){
-	      var json = csvToJson.CSV2OBJ(csv);
-	      cachedElements = json;
-	      callback(json);
-	    },3);
-	  },
-	
-	  getElement: function(sym,fn){
-	    if(cachedElements === undefined || cachedElements === null){
-	      this.getAllElements(function(){
-	        this._getElement(sym,fn);
-	      }.bind(this));
-	    }
-	    else this._getElement(sym,fn);
-	  },
-	
-	  _getElement: function(sym,fn)
-	  {
-	    cachedElements.forEach(function(element){
-	      if(element.Symbol.toUpperCase() == sym.toUpperCase())
-	      {
-	        fn(element);
-	      }
-	    });
-	  }
-	}
-	
-	var cachedElements;
-
-
-/***/ },
-/* 184 */
+/* 178 */
 /***/ function(module, exports) {
 
 	module.exports = {
@@ -31563,33 +30937,559 @@
 
 
 /***/ },
-/* 185 */
+/* 179 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var gs = __webpack_require__(162);
-	var hf = __webpack_require__(176);
+	
+	var hf = __webpack_require__(180);
+	var status = __webpack_require__(181);
 	
 	module.exports = {
 	
-	  initialize: function()
-	  {
-	    this.listenResize();
+	  load: function(handler) {
+	    //gs.setState({});
+	    //console.log("would have loaded " + this.field);
+	    var ctrlKey = handler.ctrlKey || false;
+	    handler.preventDefault();
+	
+	    // reset to default if empty string
+	    if (this.field == "") {
+	      styledElements.splice(0, styledElements.length);
+	      curve = 0;
+	    } else if (this.field == 'curve') {
+	      curve = !curve;
+	    } else {
+	      // only allow one of each prop to be added
+	      var index = hf.getIndexByAttr(styledElements, 'propName', this.field);
+	
+	      if (index === -1) {
+	        styledElements.push({
+	          propName: this.field,
+	          subtract: ctrlKey
+	        });
+	      }
+	      // otherwise remove it:
+	      else {
+	        styledElements.splice(index, 1);
+	      }
+	    }
+	
+	    //var table = gs.getTopMember('table');
+	    table.reference.setState({});
+	
+	    // sets button styles
+	    this.reference.setState({
+	      styledElements: styledElements,
+	      curve: curve
+	    });
 	  },
 	
-	  listenResize: function()
+	  // We prepare the full elements array, get ranges and sort to improve performance
+	  prepare: function(elements) {
+	
+	    var result = {
+	      ranges: [],
+	      elements: elements
+	    };
+	
+	    styledElements.forEach(function(styledElement) {
+	      var propName = styledElement.propName;
+	      var prop = hf.containsProperty(elements, propName);
+	
+	      if (!curve) {
+	        result.ranges[propName] = Math.abs(prop.absMax) + Math.abs(prop.absMin);
+	      }
+	      else {
+	        result.ranges[propName] = hf.getValidArrayLength(elements,propName);
+	      }
+	    });
+	
+	    return result;
+	
+	  },
+	
+	  // Gets the color based on prepare() and the value of the element prop
+	  getColor: function(element,config) {
+	
+	    var ranges = config.ranges;
+	    var sortedElements = config.sortedElements;
+	    var elements = config.elements;
+	
+	    // White is default if no colors are applied
+	    if (styledElements.length == 0) {
+	      return 255;
+	    }
+	
+	    var total = 0;
+	    var skip = false;
+	
+	    styledElements.forEach(function(styledElement) {
+	      var propName = styledElement.propName;
+	      var range = ranges[propName];
+	      var value = null;
+	
+	      if (!curve) {
+	        value = element[propName];
+	      } else {
+	        value = hf.getRankingInArray(elements,propName,element[propName]);
+	          //console.log(value);
+	      }
+	
+	      if(isNaN(value))
+	      {
+	        skip = true;
+	        return;
+	      }
+	      else {
+	        total += Number(value / range);
+	        total = styledElement.subtract ? 1 - total : total;
+	      }
+	
+	    }.bind(this));
+	
+	    if(skip) { return NaN; }
+	
+	    var percent = (total / styledElements.length);
+	    var color = Math.ceil(255 - percent * 255);
+	    return color;
+	
+	  }
+	
+	}
+	
+	var styledElements = [];
+	var curve = false;
+
+
+/***/ },
+/* 180 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var React = __webpack_require__(1);
+	
+	module.exports = {
+	  containsProperty: function(arr, prop, value) {
+	    if (!value) {
+	      value = null;
+	    }
+	
+	    var result = {
+	      arr: [],
+	      max: 0
+	    };
+	
+			var last = null;
+	
+	    arr.forEach(function(e) {
+	
+				// This gets max/min values in the array, needs rewrite
+	      if (e[prop] === value) {
+	        result.arr.push(e);
+	        result.max = e[prop] > result.max
+	          ? e[prop]
+	          : result.max;
+	      }
+	
+	      if (!result.absMax && e[prop]) {
+	        result.absMax = e[prop];
+	      }
+	
+	      if (!result.absMin && e[prop]) {
+	        result.absMin = e[prop];
+	      }
+	
+	      result.absMax = e[prop] > result.absMax
+	        ? e[prop]
+	        : result.absMax;
+	      result.absMin = e[prop] < result.absMin
+	        ? e[prop]
+	        : result.absMin;
+	
+	    });
+	
+	    return result;
+	  },
+	
+	  debounce: function(func, wait, immediate) {
+	    console.log('debouncing');
+	  	var timeout;
+	  	return function() {
+	  		var context = this, args = arguments;
+	  		var later = function() {
+	  			timeout = null;
+	  			if (!immediate) func.apply(context, args);
+	  		};
+	  		var callNow = immediate && !timeout;
+	  		clearTimeout(timeout);
+	  		timeout = setTimeout(later, wait);
+	  		if (callNow) func.apply(context, args);
+	  	};
+	  },
+	
+	  btnHandler: function(handler, component) {
+	    var type = handler.target.parentElement.id;
+	
+	    if (handler.target.id != "") {component.setState({type: handler.target.id});} else if (type !== undefined && type != "") {component.setState({type: type});}
+	  },
+	
+	  getIndexByAttr: function(array, attr, value) {
+	    var index = -1;
+	
+	    for (var i = 0; i < array.length; i++) {
+	      if (array[i][attr] === value) {return i;}
+	    }
+	
+	    return -1;
+	  },
+	
+	  removeFromArray: function(array, attr, value) {
+	    var index = this.getIndexByAttr(array, attr, value);
+	    array.splice(index, 1);
+	    return array;
+	  },
+	
+	  sortObjectArray: function(objArray, attr) {
+	
+			var newArr = objArray;
+	
+	    function compare(a, b) {
+	      if (a[attr] < b[attr])
+	        return -1;
+	      if (a[attr] > b[attr])
+	        return 1;
+	      return 0;
+	    }
+	
+	    return newArr.sort(compare);
+	  },
+	
+		getRankingInArray: function(arr,prop,value)
+		{
+	
+			if(isNaN(value))
+			{
+				return NaN;
+			}
+	
+				var ranking = 0;
+				var last = null;
+	
+				arr.forEach(function(e) {
+					// get ranking by comparing last value to current
+					if(last === null) { last = e[prop] };
+	
+					if(value > last)
+					{
+						ranking++;
+					}
+	
+					last = e[prop];
+				});
+	
+				return ranking;
+		},
+	
+		getValidArrayLength: function(elements,prop){
+			var length = 1;
+			elements.forEach(function(element){
+				if(!isNaN(element[prop]))
+				{
+					length++;
+				}
+			});
+	
+			return length;
+		}
+	
+	}
+
+
+/***/ },
+/* 181 */
+/***/ function(module, exports) {
+
+	module.exports = {
+	  
+	}
+
+
+/***/ },
+/* 182 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/** @jsx React.DOM */
+	var React = __webpack_require__(1);
+	var Button = __webpack_require__(183);
+	var NavbarBottom = __webpack_require__(184);
+	var hf= __webpack_require__(180);
+	
+	module.exports = React.createClass({displayName: "module.exports",
+	
+	  getInitialState: function(){
+	    return {type: 'view'};
+	  },
+	
+	  click: function(handler){
+	    hf.btnHandler(handler,this);
+	  },
+	
+	  isActive: function(button){
+	
+	    console.log(this.state.type);
+	
+	    if(this.state.type !== undefined && button == this.state.type)
+	    {
+	      return 'active';
+	    }
+	
+	    return '';
+	  },
+	
+	  render: function()
 	  {
-	    var debounceResize = hf.debounce(resize,25,true);
-	    window.onresize = debounceResize;
+	    return(
+	      React.createElement("div", {className: "navParent"}, 
+	        React.createElement("div", {onClick: this.click, className: "navCenter navTop"}, 
+	              React.createElement(Button, {activeClass: this.isActive('VIEW'), hide: true, name: "VIEW", glyph: "eye-open"}), 
+	              React.createElement(Button, {activeClass: this.isActive('SORT'), name: "SORT", glyph: "resize-vertical"}), 
+	              React.createElement(Button, {activeClass: this.isActive('COLOR'), name: "COLOR", glyph: "tint"}), 
+	              React.createElement(Button, {activeClass: this.isActive('ANALYZE'), name: "ANALYZE", glyph: "stats"}), 
+	              React.createElement(Button, {activeClass: this.isActive('ABOUT'), name: "ABOUT", glyph: "info-sign"})
+	        ), 
+	        React.createElement(NavbarBottom, {type: this.state.type})
+	      )
+	    );
+	  }
+	});
+
+
+/***/ },
+/* 183 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/** @jsx React.DOM */var React = __webpack_require__(1);
+	
+	module.exports = React.createClass({displayName: "module.exports",
+	
+	  render: function() {
+	
+	    var classNames = "";
+	
+	    if (this.props.type && this.props.type == "sub") {
+	      classNames += "btnAction ";
+	    } else {
+	      classNames += "btnTop ";
+	    }
+	
+	    // set active class
+	    if (this.props.activeClass !== null && this.props.activeClass) {
+	      classNames += this.props.activeClass + ' ';
+	    }
+	
+	    if (this.props.glyph) {
+	      var glyphClass = "glyphicon glyphicon-" + this.props.glyph;
+	    } else {
+	      var glyphClass = "";
+	    }
+	
+	    var textClass = "navText hidden-xs";
+	
+	    if (this.props.type && this.props.type == 'sub') {
+	      textClass += " hidden-sm";
+	    }
+	
+	    if (this.props.hide) {
+	      classNames += " hidden-xs";
+	    }
+	
+	    var click = function() {};
+	
+	    if (this.props.click && typeof this.props.click === 'function') {
+	      click = this.props.click;
+	    }
+	
+	    return (
+	      React.createElement("a", {href: "#", onClick: this.props.click, id: this.props.name, className: classNames}, 
+	        React.createElement("span", {className: glyphClass, "aria-hidden": "true"}), 
+	        React.createElement("span", {className: textClass}, this.props.name)
+	      )
+	    );
+	  }
+	
+	});
+
+
+/***/ },
+/* 184 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/** @jsx React.DOM */var React = __webpack_require__(1);
+	var Button = __webpack_require__(183);
+	var transitions = __webpack_require__(167);
+	var hf = __webpack_require__(180);
+	
+	var color = __webpack_require__(179);
+	
+	module.exports = React.createClass({displayName: "module.exports",
+	
+	  getButtons: function(arr, func) {
+	
+	    var arrComponent = [];
+	
+	    arr.forEach(function(component, index) {
+	
+	      var activeClass = "";
+	
+	      if (component.field == 'curve') {
+	        if (this.state && this.state.curve) {
+	          activeClass = "activeAction";
+	        }
+	      } else if (this.state && this.state.styledElements) {this.state.styledElements.forEach(function(element) {
+	          if (element.propName == component.field) {
+	            activeClass = element.subtract
+	              ? "activeActionSubtract"
+	              : "activeActionAdd";
+	          }
+	        });}
+	
+	      // We use this to call back to the individual button
+	      component['reference'] = this;
+	
+	      arrComponent.push(
+	        React.createElement(Button, {
+	          key: index, 
+	          glyph: component.glyph, 
+	          click: func.bind(component), 
+	          activeClass: activeClass, 
+	          name: component.name, 
+	          type: "sub"})
+	      );
+	
+	    }.bind(this));
+	
+	    return arrComponent;
+	  },
+	
+	  buttonDefs: function() {
+	    switch (this.props.type)
+	    {case "COLOR":
+	        return this.getButtons([
+	          {
+	            name: 'CLEAR',
+	            field: '',
+	            glyph: 'ban-circle'
+	          }, {
+	            name: 'CURVE',
+	            field: 'curve',
+	            glyph: 'signal'
+	          },
+	          {
+	            name: 'MELTING',
+	            field: 'MeltingPoint-C',
+	            glyph: 'tint'
+	          },
+	          {
+	            name: 'ATOMICRADIUS',
+	            field: 'AtomicRadius',
+	            glyph:'resize-full'
+	          },
+	          {
+	            name: 'SPECIFICHEAT',
+	            field: 'SpecificHeat',
+	            glyph: 'fire'
+	          }, {
+	            name: 'DENSITY',
+	            field: 'Density-gcc',
+	            glyph: 'scale'
+	          },
+	          {
+	            name: 'ELECTRONEGATIVITY',
+	            field: 'PaulingElectronegativity',
+	            glyph: 'flash'
+	          },
+	        ], color.load);
+	
+	        //electronegativity glyph: flash
+	
+	        case "ANALYZE":
+	          return this.getButtons([
+	            {
+	              name: 'GRAPH'
+	            }, {
+	              name: 'TABLE'
+	            }, {
+	              name: 'UNSELECT'
+	            }
+	          ], function() {});}
+	
+	        return [];
+	      },
+	
+	      render: function() {
+	        var buttons = this.buttonDefs();
+	        //transitions.fadeIn(
+	        return (
+	          React.createElement("span", null, 
+	          React.createElement("div", {id: "periodicTable", className: "navCenter navBottom"}, buttons)
+	          )
+	        );
+	
+	      }
+	    });
+
+
+/***/ },
+/* 185 */
+/***/ function(module, exports) {
+
+	module.exports = {
+	
+	  rootComponent: null,
+	
+	  setRootComponent: function(_rootComponent){
+	    this.rootComponent = _rootComponent;
+	  },
+	
+	  setState: function(state){
+	    console.log(state);
+	    this.rootComponent.setState(state);
 	  }
 	};
+
+
+/***/ },
+/* 186 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/** @jsx React.DOM */var ajax = __webpack_require__(176);
+	var $ = __webpack_require__(177);
+	var React = __webpack_require__(1);
 	
-	// On window resize we need to redo responsive-elements
-	function resize()
-	{
-	  gs.eachComponent({group: 'resize'},
-	  function(component) {
-	    component.reference.setState({resize: true});
-	  });
+	module.exports = {
+	
+	  wikiSummaryApi: "https://en.wikipedia.org/w/api.php?format=json&action=query&prop=extracts&exintro=&explaintext=&titles=",
+	
+	  getWikiSummary: function(article,callback)
+	  {
+	    console.log('getting summary');
+	    // we use jsonp here to avoid cross origin headers, ? gets replaced by the callback
+	    ajax.getJSONP(this.wikiSummaryApi + encodeURIComponent(article) + '&callback=?',function(response){
+	      var pages = response.query.pages;
+	      var top1Page = pages[Object.keys(pages)[0]]; // we do not care what page it is, we take top 1 page
+	      console.log(top1Page.extract);
+	
+	      // We have to split the paragraphs manually because react does not allow JS string to html
+	      var paragraphs = top1Page.extract.split("\n");
+	      var jsx = [];
+	      paragraphs.forEach(function(paragraph){
+	        jsx.push(paragraph);
+	        jsx.push(React.createElement("br", null));
+	        jsx.push(React.createElement("br", null));
+	      });
+	
+	      callback(jsx);
+	    });
+	  }
 	}
 
 
