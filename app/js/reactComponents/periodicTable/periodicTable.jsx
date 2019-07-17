@@ -25,20 +25,21 @@ module.exports = React.createClass({
 
 		var cells = [];
 		var elements = this.props.elements;
-
+		console.log(elements);
 		// This is to save resources and perform loops before individual elements are created
 		var config = color.prepare(elements);
 
 		var key = 0;
+		console.log(elements);
 		elements.forEach(function(element){
 
+			console.log(element.Name);
 			// Make sure it is a valid element, all emenets must have names this also eliminates csv dups
 			if(element.Name != "")
 			{
 				key++;
 				cells.push(
 					<Element
-						test={Math.random()}
 						key={key}
 						element={element}
 						hexColor={color.getColor(element,config)}

@@ -9,13 +9,14 @@ var ajax = require("../ajax.js");
 module.exports = React.createClass({
 
   render: function() {
+    console.log('rerender!!!!');
     var elements = this.props.elements;
     if(this.state && this.state.route)
     {
       var modules = [];
       var key = 0;
       modules.push(
-        <Navbar key={key++}/>
+        <Navbar key={key++} viewbar={this.state.route != "table"}/>
       );
 
       if(this.state.route == "table")

@@ -15,11 +15,7 @@ module.exports = React.createClass({
 
       var activeClass = "";
 
-      if (component.field == 'curve') {
-        if (this.state && this.state.curve) {
-          activeClass = "activeAction";
-        }
-      } else if (this.state && this.state.styledElements) {this.state.styledElements.forEach(function(element) {
+      if (this.state && this.state.styledElements) {this.state.styledElements.forEach(function(element) {
           if (element.propName == component.field) {
             activeClass = element.subtract
               ? "activeActionSubtract"
@@ -53,11 +49,7 @@ module.exports = React.createClass({
             name: 'CLEAR',
             field: '',
             glyph: 'ban-circle'
-          }, {
-            name: 'CURVE',
-            field: 'curve',
-            glyph: 'signal'
-          },
+          }, 
           {
             name: 'MELTING',
             field: 'MeltingPoint-C',
@@ -82,9 +74,9 @@ module.exports = React.createClass({
             field: 'PaulingElectronegativity',
             glyph: 'flash'
           },
+          {name:'IONIZATIONENERGY',field:'FirstIonisationEnergy',glyph:'download'}
         ], color.load);
 
-        //electronegativity glyph: flash
 
         case "ANALYZE":
           return this.getButtons([
@@ -95,12 +87,18 @@ module.exports = React.createClass({
             }, {
               name: 'UNSELECT'
             }
-          ], function() {});}
+          ], function() {
+
+            console.log('button clicked!!!');
+
+          });}
 
         return [];
       },
 
       render: function() {
+
+
         var buttons = this.buttonDefs();
         //transitions.fadeIn(
         return (
