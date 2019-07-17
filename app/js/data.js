@@ -4,7 +4,7 @@ var csvToJson = require("./csvToJson.js");
 module.exports = {
 
   getAllElements: function(callback){
-    ajax.get('./../elements.csv',function(csv){
+    ajax.get('./elements.csv',function(csv){
       var json = csvToJson.CSV2OBJ(csv);
       cachedElements = json;
       callback(json);
